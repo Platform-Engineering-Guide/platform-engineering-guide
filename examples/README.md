@@ -8,6 +8,7 @@ by Jordan Dinsdale.
 
 Examples are organised by chapter. Each directory contains a README explaining the context, prerequisites, and how to run or apply the examples.
 
+```text
 examples/
 ├── chapter-06-iac/          # Terraform, OpenTofu, Pulumi, Crossplane
 ├── chapter-08-gitops/       # Argo CD, Flux CD configurations
@@ -16,6 +17,7 @@ examples/
 ├── chapter-14-supply-chain/ # Sigstore, SLSA, SBOM generation
 ├── chapter-15-runtime/      # Kyverno, Falco, Tetragon policies
 └── chapter-19-ai-platform/  # AI governance, .cursorrules, pre-commit hooks
+```
 
 ## Important Notes
 
