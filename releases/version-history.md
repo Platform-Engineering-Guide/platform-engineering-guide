@@ -20,4 +20,6 @@ Associated Errata:
 
 - errata/2026/errata-v1.md
 
+Tag: v2026.1.0
+
 ---

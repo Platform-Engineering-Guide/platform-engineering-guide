@@ -4,11 +4,11 @@ This file tracks the sections flagged in the book with **Watch This Space** call
 
 **Status key:**
 
-| Status | Meaning |
-|---|---|
-| 🟡 Watching | No material change since publication |
-| 🟢 Resolved | The area has developed sufficiently to update guidance |
-| 🔴 Superseded | The recommendation has changed materially |
+| Status        | Meaning                                                |
+|---------------|--------------------------------------------------------|
+| 🟡 Watching   | No material change since publication ------------------|
+| 🟢 Resolved   | The area has developed sufficiently to update guidance |
+| 🔴 Superseded | The recommendation has changed materially -------------|
 
 ---
 
@@ -24,8 +24,8 @@ This file tracks the sections flagged in the book with **Watch This Space** call
 
 ## Chapter 19 — AI-Assisted Platform Engineering
 
-**Callout:** The tooling for AI agent governance in infrastructure 
-contexts is nascent as of early 2026. Expect significant maturation 
+**Callout:** The tooling for AI agent governance in infrastructure
+contexts is nascent as of early 2026. Expect significant maturation
 over the next 12–18 months.
 
 **Status:** 🟡 Watching  
@@ -40,8 +40,8 @@ over the next 12–18 months.
 
 **Status:** 🟡 Watching  
 **Last reviewed:** April 2026  
-**Notes:** MCP adoption continuing to grow. No platform engineering 
-reference implementation or established pattern has emerged yet. 
+**Notes:** MCP adoption continuing to grow. No platform engineering
+reference implementation or established pattern has emerged yet.
 This remains the highest-velocity Watch This Space item in the book.
 
 **Callout:** The tooling for managing AI agent portfolios is nascent.

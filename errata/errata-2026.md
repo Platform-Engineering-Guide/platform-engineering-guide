@@ -26,36 +26,28 @@ If you discover a potential error, please submit an Issue in this repository wit
 
 ## Errata Entries
 
-| ID | Page | Section | Issue | Correction | Status |
-|----|------|---------|-------|-------------|--------|
-| E-001 | TBD | TBD | Placeholder entry | No Corrections logged yet | Closed |
+| ID ---| Page | Section | Issue             | Correction                | Status    |
+|-------|------|---------|-------------------|---------------------------|-----------|
+| E-001 | TBD  | TBD     | Placeholder entry | No Corrections logged yet | Won't Fix |
 
 ---
 
 ## Status Definitions
 
-| Status | Meaning |
-|--------|---------|
-| Open | Reported but not yet verified |
-| Confirmed | Verified as an error |
-| Corrected | Fixed in later printings |
-| Won’t Fix | Not considered an error |
+| Status    | Meaning                       |
+|-----------|-------------------------------|
+| Open      | Reported but not yet verified |
+| Confirmed | Verified as an error          |
+| Corrected | Fixed in later printings      |
+| Won’t Fix | Not considered an error       |
 
 ---
 
 ## Version History
 
-| Version | Date (DD-MM-YYYY)| Notes|
-|---------|------------------|------|
-| v1.0 | 10-04-2026 | Initial errata release |
-
----
-
-## Printing Notes
-
-Future printings may incorporate corrections listed here.
-
-Readers should reference the **printing number** located on the copyright page of the book.
+| Version | Date (DD-MM-YYYY)| Notes                  |
+|---------|------------------|------------------------|
+| v1.0    | 10-04-2026       | Initial errata release |
 
 ---
 
