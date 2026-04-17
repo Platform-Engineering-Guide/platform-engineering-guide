@@ -1,0 +1,52 @@
+# Promtail DaemonSet configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: monitoring
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 9080
+
+    clients:
+      - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+
+    scrape_configs:
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        pipeline_stages:
+          # Parse JSON logs
+          - json:
+              expressions:
+                level: level
+                message: message
+                trace_id: trace_id
+                service_name: service_name
+          # Extract level as a label for efficient filtering
+          - labels:
+              level:
+              service_name:
+          # Drop debug logs in production
+          - match:
+              selector: '{namespace=~"payments|orders|inventory"}'
+              stages:
+                - drop:
+                    expression: '.*"level":"debug".*'
+          # Add Kubernetes labels
+          - labelallow:
+              - namespace
+              - pod
+              - container
+              - app
+              - level
+              - service_name
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_log_format]
+            action: keep
+            regex: json|structured
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod

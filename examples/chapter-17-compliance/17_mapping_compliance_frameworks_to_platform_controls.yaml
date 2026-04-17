@@ -1,0 +1,31 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-signed-images-production
+  annotations:
+    policies.kyverno.io/title: Require Signed Images in Production
+    policies.kyverno.io/category: Supply Chain Security
+    compliance.acme.io/controls: "SOC2-CC6.1, PCI-DSS-6.3.3"
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: check-image-signature
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaceSelector:
+                matchLabels:
+                  environment: production
+      verifyImages:
+        - imageReferences:
+            - "123456789.dkr.ecr.eu-west-1.amazonaws.com/*"
+          attestors:
+            - count: 1
+              entries:
+                - keyless:
+                    url: https://fulcio.sigstore.dev
+                    identities:
+                      - issuer: https://token.actions.githubusercontent.com
+                        subjectRegExp: "https://github.com/acme-corp/.*/\\.github/workflows/.*@refs/heads/main"

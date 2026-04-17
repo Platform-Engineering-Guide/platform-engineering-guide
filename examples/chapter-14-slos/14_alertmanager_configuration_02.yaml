@@ -1,0 +1,15 @@
+# Alertmanager StatefulSet — three replicas in HA mode
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: alertmanager
+          args:
+            - --config.file=/etc/alertmanager/alertmanager.yaml
+            - --storage.path=/alertmanager
+            - --cluster.listen-address=0.0.0.0:9094
+            # Peer addresses for gossip clustering
+            - --cluster.peer=alertmanager-0.alertmanager:9094
+            - --cluster.peer=alertmanager-1.alertmanager:9094
+            - --cluster.peer=alertmanager-2.alertmanager:9094

@@ -1,0 +1,15 @@
+strategy:
+  blueGreen:
+    activeService: payments-service-active      # Receives production traffic
+    previewService: payments-service-preview    # Receives no traffic (or preview traffic)
+    autoPromotionEnabled: false                 # Require manual promotion
+    scaleDownDelaySeconds: 300                  # Keep old version running for 5 minutes after switch
+    prePromotionAnalysis:
+      templates:
+        - templateName: smoke-test
+      args:
+        - name: service-url
+          value: http://payments-service-preview
+    postPromotionAnalysis:
+      templates:
+        - templateName: success-rate-check

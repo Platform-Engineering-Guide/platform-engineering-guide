@@ -1,0 +1,101 @@
+# Kyverno Policy: disallow privileged containers
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-privileged-containers
+  annotations:
+    policies.kyverno.io/title: Disallow Privileged Containers
+    policies.kyverno.io/category: Pod Security - Baseline
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >
+      Privileged mode disables most security mechanisms and must not be allowed.
+      This policy ensures no container sets privileged to true.
+spec:
+  validationFailureAction: Enforce    # Enforce | Audit
+  background: true                    # Also check existing resources
+  rules:
+    - name: privileged-containers
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - monitoring     # node-exporter requires privileged
+      validate:
+        message: "Privileged mode is disallowed."
+        pattern:
+          spec:
+            =(initContainers):
+              - =(securityContext):
+                  =(privileged): "false"
+            containers:
+              - =(securityContext):
+                  =(privileged): "false"
+            =(ephemeralContainers):
+              - =(securityContext):
+                  =(privileged): "false"
+---
+# Kyverno Mutation Policy: add default security context if missing
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: add-default-security-context
+spec:
+  rules:
+    - name: add-security-context
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaceSelector:
+                matchLabels:
+                  enforce-security-context: "true"
+      mutate:
+        patchStrategicMerge:
+          spec:
+            =(securityContext):
+              runAsNonRoot: true
+              seccompProfile:
+                type: RuntimeDefault
+            containers:
+              - (name): "*"
+                =(securityContext):
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+                  capabilities:
+                    drop:
+                      - ALL
+---
+# Kyverno Generate Policy: create NetworkPolicy when namespace is created
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: generate-default-networkpolicy
+spec:
+  rules:
+    - name: default-deny-ingress
+      match:
+        any:
+          - resources:
+              kinds:
+                - Namespace
+              selector:
+                matchLabels:
+                  network-policy: "default-deny"
+      generate:
+        apiVersion: networking.k8s.io/v1
+        kind: NetworkPolicy
+        name: default-deny-ingress
+        namespace: "{{request.object.metadata.name}}"
+        synchronize: true    # Keep generated resource in sync
+        data:
+          spec:
+            podSelector: {}
+            policyTypes:
+              - Ingress

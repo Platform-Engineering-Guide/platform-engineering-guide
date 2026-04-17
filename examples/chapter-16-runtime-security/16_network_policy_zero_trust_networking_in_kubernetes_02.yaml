@@ -1,0 +1,46 @@
+# CiliumNetworkPolicy: L7 HTTP policy
+# Allows only GET requests to specific paths from the orders service
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: payments-api-l7-policy
+  namespace: payments
+spec:
+  endpointSelector:
+    matchLabels:
+      app: payments-service
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app: orders-service
+            k8s:io.kubernetes.pod.namespace: orders
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+          rules:
+            http:
+              - method: POST
+                path: /api/v1/payments
+              - method: GET
+                path: /api/v1/payments/[a-z0-9-]+/status
+---
+# CiliumNetworkPolicy: FQDN-based egress
+# Allow connections to specific external FQDNs only
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: payments-external-egress
+  namespace: payments
+spec:
+  endpointSelector:
+    matchLabels:
+      app: payments-service
+  egress:
+    - toFQDNs:
+        - matchName: "api.stripe.com"
+        - matchName: "hooks.stripe.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

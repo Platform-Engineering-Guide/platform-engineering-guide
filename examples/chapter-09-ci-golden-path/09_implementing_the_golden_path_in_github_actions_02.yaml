@@ -1,0 +1,18 @@
+# Application team's .github/workflows/ci.yml
+# Total configuration: 15 lines. Everything else is handled by the platform.
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    uses: acme-corp/platform-workflows/.github/workflows/platform-build.yml@main
+    with:
+      service-name: payments-service
+      build-command: "mvn -B package -DskipTests"
+      test-command: "mvn -B test"
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+      DEPLOY_REPO_TOKEN: ${{ secrets.DEPLOY_REPO_TOKEN }}

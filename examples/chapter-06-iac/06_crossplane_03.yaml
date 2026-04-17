@@ -1,0 +1,16 @@
+# Database Claim — what an application team creates to request a database
+apiVersion: platform.acme.io/v1alpha1
+kind: Database
+metadata:
+  name: payments-db
+  namespace: payments
+spec:
+  parameters:
+    tier: medium
+    engine: postgres
+    environment: production
+  compositionSelector:
+    matchLabels:
+      provider: aws
+  writeConnectionSecretToRef:
+    name: payments-db-credentials

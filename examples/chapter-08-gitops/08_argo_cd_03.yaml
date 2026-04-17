@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: payments-team
+  namespace: argocd
+spec:
+  description: Payments team applications
+  sourceRepos:
+    - https://github.com/acme-corp/payments-service-deploy
+    - https://github.com/acme-corp/payments-worker-deploy
+  destinations:
+    - namespace: payments
+      server: https://kubernetes.default.svc
+    - namespace: payments
+      server: https://prod-eu-cluster.internal
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace      # Allow creating namespaces (if needed)
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota  # Prevent overriding platform-set quotas
+  roles:
+    - name: developer
+      description: Can sync and view payments applications
+      policies:
+          # v3.x: sub-resources no longer inherit parent permissions by default.
+          # Permissions must be granted explicitly per sub-resource if needed.
+          # The grants below are sufficient for sync and get in v3.x. 
+        - p, proj:payments-team:developer, applications, get, payments-team/*, allow
+        - p, proj:payments-team:developer, applications, sync, payments-team/*, allow
+      groups:
+        - payments-engineers
+    - name: readonly
+      description: Read-only access
+      policies:
+        - p, proj:payments-team:readonly, applications, get, payments-team/*, allow
+      groups:
+        - engineering-leads

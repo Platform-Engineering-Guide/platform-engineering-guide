@@ -1,0 +1,10 @@
+# EKS Pod Identity Association — grants a specific service account
+# access to an IAM role without annotation-based IRSA configuration
+apiVersion: eks.amazonaws.com/v1alpha1
+kind: PodIdentityAssociation
+metadata:
+  name: payments-service-aws-access
+  namespace: payments
+spec:
+  roleArn: arn:aws:iam::123456789:role/payments-service-role
+  serviceAccountName: payments-service

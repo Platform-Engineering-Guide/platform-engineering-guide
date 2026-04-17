@@ -1,0 +1,20 @@
+// Application team's devcontainer.json extending the platform base
+{
+  "name": "Payments Service",
+  "image": "ghcr.io/acme-corp/platform-devcontainer:2026.1",
+
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "installMaven": true
+    }
+  },
+
+  "postCreateCommand": "mvn dependency:resolve && platform env setup --service payments-service",
+
+  "customizations": {
+    "vscode": {
+      "extensions": ["vscjava.vscode-java-pack"]
+    }
+  }
+}

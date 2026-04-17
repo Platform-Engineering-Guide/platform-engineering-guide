@@ -1,0 +1,39 @@
+# otel-collector/config.yaml — deployed in each cluster
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1000
+  resource:
+    attributes:
+      - key: cloud.provider
+        value: "${CLOUD_PROVIDER}"
+        action: upsert
+      - key: k8s.cluster.name
+        value: "${CLUSTER_NAME}"
+        action: upsert
+      - key: deployment.environment
+        value: "${ENVIRONMENT}"
+        action: upsert
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo.platform.internal:4317
+    tls:
+      cert_file: /var/run/secrets/platform/tls.crt
+      key_file: /var/run/secrets/platform/tls.key
+      ca_file: /var/run/secrets/platform/ca.crt
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [otlp/tempo]

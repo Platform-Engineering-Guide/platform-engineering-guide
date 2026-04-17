@@ -1,0 +1,30 @@
+# ApplicationSet: deploy platform policies to all clusters
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-policies
+  namespace: argocd
+spec:
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            platform-managed: "true"     # All platform-managed clusters
+  template:
+    metadata:
+      name: "platform-policies-{{name}}"
+    spec:
+      project: platform-policies
+      source:
+        repoURL: https://github.com/acme-corp/platform-policies
+        targetRevision: HEAD
+        path: kyverno/policies
+      destination:
+        server: "{{server}}"
+        namespace: kyverno
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - Replace=true               # Replace ensures old policies are fully removed

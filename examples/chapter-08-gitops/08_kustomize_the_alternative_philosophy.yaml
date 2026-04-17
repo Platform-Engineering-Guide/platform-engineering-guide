@@ -1,0 +1,44 @@
+# Base manifest: deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payments-service
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: payments
+          image: payments-service:latest
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+---
+# Production overlay: kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+patches:
+  - patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: payments-service
+      spec:
+        replicas: 3
+        template:
+          spec:
+            containers:
+              - name: payments
+                resources:
+                  limits:
+                    memory: "512Mi"
+                    cpu: "500m"
+    target:
+      kind: Deployment
+      name: payments-service
+images:
+  - name: payments-service
+    newTag: "1.4.2"

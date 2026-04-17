@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payments-service
+  namespace: payments
+spec:
+  template:
+    spec:
+      # Pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault    # Use the container runtime's default seccomp profile
+        supplementalGroups: []
+
+      automountServiceAccountToken: false  # Only mount if the service needs API access
+
+      containers:
+        - name: payments-service
+          image: 123456789.dkr.ecr.eu-west-1.amazonaws.com/payments-service@sha256:...
+          # Container-level security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL             # Drop all Linux capabilities
+              add: []             # Add back only what is explicitly needed
+
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi     # Always set limits; no unbounded resource consumption
+
+          # Writable volumes for temp directories (read-only root filesystem)
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /app/cache
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}

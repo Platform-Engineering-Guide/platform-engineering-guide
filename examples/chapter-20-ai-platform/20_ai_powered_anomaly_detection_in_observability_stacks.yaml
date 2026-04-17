@@ -1,0 +1,19 @@
+# Grafana Machine Learning anomaly detection — Terraform resource
+# Requires Grafana Cloud or self-hosted Grafana with ML plugin
+
+resource "grafana_machine_learning_job" "api_latency_anomaly" {
+  name            = "payments-api-latency-anomaly"
+  metric          = "grafana_ml_forecast"
+  datasource_type = "prometheus"
+  datasource_uid  = grafana_data_source.prometheus.uid
+
+  query_params = {
+    expr = "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{service='payments-api'}[5m]))"
+  }
+
+  # Training window: 4 weeks captures weekly seasonality patterns
+  training_window = "4w"
+
+  # 5-minute resolution; alert when outside 99% prediction interval
+  interval = 300
+}

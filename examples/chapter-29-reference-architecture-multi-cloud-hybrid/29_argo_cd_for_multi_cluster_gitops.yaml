@@ -1,0 +1,28 @@
+# ApplicationSet targeting all production clusters regardless of cloud provider
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: payments-api-production
+  namespace: argocd
+spec:
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            environment: production    # All production clusters, any cloud
+  template:
+    metadata:
+      name: "payments-api-{{name}}"
+    spec:
+      project: payments
+      source:
+        repoURL: https://github.com/acme-corp/payments-api
+        targetRevision: HEAD
+        path: deploy/overlays/production
+      destination:
+        server: "{{server}}"           # Cluster API server from cluster registration
+        namespace: payments-production
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

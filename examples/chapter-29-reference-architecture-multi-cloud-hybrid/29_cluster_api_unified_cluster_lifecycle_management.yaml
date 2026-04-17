@@ -1,0 +1,73 @@
+# Cluster API: define a production cluster on AWS
+# Applied to the management cluster; CAPI provisions the workload cluster
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: production-aws-euw1
+  namespace: clusters
+  labels:
+    cloud: aws
+    region: eu-west-1
+    environment: production
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["10.100.0.0/16"]
+    services:
+      cidrBlocks: ["10.101.0.0/16"]
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    kind: AWSCluster
+    name: production-aws-euw1
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    kind: KubeadmControlPlane
+    name: production-aws-euw1-control-plane
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSCluster
+metadata:
+  name: production-aws-euw1
+  namespace: clusters
+spec:
+  region: eu-west-1
+  sshKeyName: platform-ssh-key
+  network:
+    vpc:
+      availabilityZoneUsageLimit: 3
+      availabilityZoneSelection: Ordered
+    subnets:
+      - availabilityZone: eu-west-1a
+        cidrBlock: "10.0.1.0/24"
+        isPublic: false
+      - availabilityZone: eu-west-1b
+        cidrBlock: "10.0.2.0/24"
+        isPublic: false
+      - availabilityZone: eu-west-1c
+        cidrBlock: "10.0.3.0/24"
+        isPublic: false
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: KubeadmControlPlane
+metadata:
+  name: production-aws-euw1-control-plane
+  namespace: clusters
+spec:
+  version: v1.35.0
+  replicas: 3
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      kind: AWSMachineTemplate
+      name: production-aws-euw1-control-plane
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          audit-log-path: /var/log/kubernetes/audit.log
+          audit-policy-file: /etc/kubernetes/audit-policy.yaml
+          enable-admission-plugins: "NodeRestriction,PodSecurity"
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: aws

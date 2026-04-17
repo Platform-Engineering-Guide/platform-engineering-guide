@@ -1,0 +1,52 @@
+# MLflow tracking server Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow-tracking
+  namespace: ml-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mlflow-tracking
+  template:
+    metadata:
+      labels:
+        app: mlflow-tracking
+        team: ml-platform
+        cost-centre: CC-2001
+    spec:
+      containers:
+        - name: mlflow
+          image: ghcr.io/mlflow/mlflow:v2.10.0
+          args:
+            - mlflow
+            - server
+            - --host=0.0.0.0
+            - --port=5000
+            - --backend-store-uri=postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST)/mlflow
+            - --default-artifact-root=s3://your-mlflow-artifacts/
+            - --serve-artifacts
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: mlflow-db-credentials
+                  key: host
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mlflow-db-credentials
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mlflow-db-credentials
+                  key: password
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2
+              memory: 4Gi

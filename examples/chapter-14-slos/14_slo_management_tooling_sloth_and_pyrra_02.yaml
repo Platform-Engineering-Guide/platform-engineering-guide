@@ -1,0 +1,21 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: payments-service-availability
+  namespace: monitoring
+  labels:
+    pyrra.dev/team: payments
+spec:
+  target: "99.9"
+  window: 30d
+  description: >
+    99.9% of HTTP requests to the payments service succeed.
+  indicator:
+    ratio:
+      errors:
+        metric: http_requests_total{job="payments-service",status_code=~"5.."}
+      total:
+        metric: http_requests_total{job="payments-service"}
+  alerting:
+    burnrateAlerts: true
+    multiwindow: true

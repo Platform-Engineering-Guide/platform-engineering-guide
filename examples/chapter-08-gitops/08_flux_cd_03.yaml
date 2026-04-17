@@ -1,0 +1,42 @@
+# Tenant namespace with restricted service account
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: payments-gitops
+  labels:
+    toolkit.fluxcd.io/tenant: payments-team
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: payments-reconciler
+  namespace: payments-gitops
+---
+# RoleBinding restricts reconciler to payments namespace only
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: payments-reconciler
+  namespace: payments         # Target namespace, not gitops namespace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin         # Scoped to the payments namespace by this RoleBinding
+subjects:
+  - kind: ServiceAccount
+    name: payments-reconciler
+    namespace: payments-gitops
+---
+# Kustomization uses the tenant service account
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: payments-service
+  namespace: payments-gitops
+spec:
+  serviceAccountName: payments-reconciler   # Use tenant-scoped account
+  sourceRef:
+    kind: GitRepository
+    name: payments-service-deploy
+  path: ./overlays/production
+  prune: true

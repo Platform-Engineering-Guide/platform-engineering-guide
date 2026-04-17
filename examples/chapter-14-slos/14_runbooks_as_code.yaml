@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: payments-auto-remediation
+  namespace: platform
+spec:
+  templates:
+    - name: diagnose-high-error-rate
+      inputs:
+        parameters:
+          - name: service
+          - name: namespace
+      steps:
+        - - name: gather-diagnostics
+            template: gather-diagnostics
+            arguments:
+              parameters:
+                - name: service
+                  value: "{{inputs.parameters.service}}"
+                - name: namespace
+                  value: "{{inputs.parameters.namespace}}"
+        - - name: check-recent-deployments
+            template: check-deployments
+            arguments:
+              parameters:
+                - name: service
+                  value: "{{inputs.parameters.service}}"
+                - name: namespace
+                  value: "{{inputs.parameters.namespace}}"
+          - name: check-downstream-health
+            template: check-downstream
+            arguments:
+              parameters:
+                - name: service
+                  value: "{{inputs.parameters.service}}"
+        - - name: post-diagnosis-to-incident
+            template: notify-incident
+            arguments:
+              parameters:
+                - name: diagnosis
+                  value: "{{steps.gather-diagnostics.outputs.result}}"
+                - name: deployment-status
+                  value: "{{steps.check-recent-deployments.outputs.result}}"
+
+    - name: gather-diagnostics
+      inputs:
+        parameters:
+          - name: service
+          - name: namespace
+      script:
+        image: bitnami/kubectl:1.30
+        command: [bash]
+        source: |
+          echo "=== Pod Status ==="
+          kubectl get pods -n {{inputs.parameters.namespace}} \
+            -l app={{inputs.parameters.service}} -o wide
+
+          echo "=== Recent Events ==="
+          kubectl get events -n {{inputs.parameters.namespace}} \
+            --field-selector involvedObject.name={{inputs.parameters.service}} \
+            --sort-by='.lastTimestamp' | tail -20
+
+          echo "=== Recent Logs (errors only) ==="
+          kubectl logs -n {{inputs.parameters.namespace}} \
+            -l app={{inputs.parameters.service}} \
+            --since=10m | grep -i error | tail -30

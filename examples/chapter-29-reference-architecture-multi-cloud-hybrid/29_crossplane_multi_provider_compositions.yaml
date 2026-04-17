@@ -1,0 +1,59 @@
+# XRD: provider-agnostic PostgreSQL database interface
+# Defined once; implementations provided per cloud provider
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xpostgresdatabases.platform.internal
+spec:
+  group: platform.internal
+  names:
+    kind: XPostgresDatabase
+    plural: xpostgresdatabases
+  claimNames:
+    kind: PostgresDatabase
+    plural: postgresdatabases
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                parameters:
+                  type: object
+                  properties:
+                    environment:
+                      type: string
+                      enum: [development, staging, production]
+                    instanceClass:
+                      type: string
+                      enum: [small, medium, large]
+                      default: small
+                    databaseName:
+                      type: string
+                  required: [environment, databaseName]
+              required: [parameters]
+---
+# Composition selector: choose AWS or GCP composition based on label
+# Applied automatically based on namespace label cloud-provider=aws|gcp
+
+# Claim with provider selection
+apiVersion: platform.internal/v1alpha1
+kind: PostgresDatabase
+metadata:
+  name: payments-db
+  namespace: payments-production    # Namespace has label cloud-provider=aws
+spec:
+  compositionSelector:
+    matchLabels:
+      provider: aws                 # Automatically set by namespace label propagation
+  parameters:
+    environment: production
+    instanceClass: medium
+    databaseName: payments
+  writeConnectionSecretToRef:
+    name: payments-db-credentials

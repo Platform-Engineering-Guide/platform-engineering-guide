@@ -1,0 +1,28 @@
+# exceptions/system-workloads/monitoring-privileged-exception.yaml
+apiVersion: kyverno.io/v2beta1
+kind: PolicyException
+metadata:
+  name: monitoring-privileged-exception
+  namespace: monitoring
+  annotations:
+    exception.acme.io/justification: >
+      node-exporter requires privileged access to read host-level metrics
+      from /proc and /sys. This is a standard requirement for node exporters
+      and cannot be avoided without significant metric coverage loss.
+    exception.acme.io/approved-by: "security-team@acme.io"
+    exception.acme.io/approved-date: "2026-01-10"
+    exception.acme.io/review-date: "2026-07-10"
+    exception.acme.io/jira-ticket: "SEC-1234"
+spec:
+  exceptions:
+    - policyName: disallow-privileged-containers
+      ruleNames:
+        - privileged-containers
+  match:
+    any:
+      - resources:
+          kinds: [Pod]
+          namespaces: [monitoring]
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus-node-exporter

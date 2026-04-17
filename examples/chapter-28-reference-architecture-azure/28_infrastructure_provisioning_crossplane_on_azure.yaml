@@ -1,0 +1,38 @@
+# Crossplane Composition for self-service AKS workload cluster
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xaksclusters.platform.acme.corp
+spec:
+  compositeTypeRef:
+    apiVersion: platform.acme.corp/v1alpha1
+    kind: XAKSCluster
+  resources:
+    - name: resource-group
+      base:
+        apiVersion: azure.upbound.io/v1beta1
+        kind: ResourceGroup
+        spec:
+          forProvider:
+            location: "uksouth"
+    - name: aks-cluster
+      base:
+        apiVersion: containerservice.azure.upbound.io/v1beta1
+        kind: KubernetesCluster
+        spec:
+          forProvider:
+            location: "uksouth"
+            kubernetesVersion: "1.35"
+            oidcIssuerEnabled: true
+            workloadIdentityEnabled: true
+            defaultNodePool:
+              - name: "system"
+                vmSize: "Standard_D4s_v5"
+                nodeCount: 3
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: "spec.parameters.nodeCount"
+          toFieldPath: "spec.forProvider.defaultNodePool[0].nodeCount"
+        - type: FromCompositeFieldPath
+          fromFieldPath: "spec.parameters.environment"
+          toFieldPath: "metadata.labels.environment"

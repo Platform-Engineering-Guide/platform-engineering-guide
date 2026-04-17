@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-service-production
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io  # Cascade delete on app removal
+spec:
+  project: payments-team
+  source:
+    repoURL: https://github.com/acme-corp/payments-service-deploy
+    targetRevision: main
+    path: overlays/production
+  destination:
+    server: https://kubernetes.default.svc   # In-cluster deployment
+    namespace: payments
+  syncPolicy:
+    automated:
+      prune: true       # Delete resources removed from Git
+      selfHeal: true    # Revert manual changes to cluster
+      allowEmpty: false # Prevent accidental deletion of all resources
+    syncOptions:
+      - CreateNamespace=false   # Namespace must already exist
+      - PrunePropagationPolicy=foreground
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    # Ignore last-applied-configuration annotation managed by kubectl
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /metadata/annotations/kubectl.kubernetes.io~1last-applied-configuration
+    # Ignore HPA-managed replica counts
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

@@ -1,0 +1,7 @@
+# This is real Helm chart code. It is also genuinely hard to read.
+{{- range $key, $value := .Values.annotations }}
+  {{ $key }}: {{ $value | quote }}
+{{- end }}
+{{- with .Values.podAnnotations }}
+  {{- toYaml . | nindent 8 }}
+{{- end }}

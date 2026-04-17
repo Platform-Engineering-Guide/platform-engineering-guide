@@ -1,0 +1,19 @@
+infrastructure/
+├── modules/              # Reusable Terraform/Pulumi modules
+│   ├── database/
+│   ├── kubernetes-cluster/
+│   └── networking/
+├── environments/
+│   ├── dev/
+│   │   ├── main.tf
+│   │   └── terraform.tfvars
+│   ├── staging/
+│   │   ├── main.tf
+│   │   └── terraform.tfvars
+│   └── production/
+│       ├── main.tf
+│       └── terraform.tfvars
+└── platform/             # Platform-owned shared infrastructure
+    ├── networking/
+    ├── iam/
+    └── eks-clusters/

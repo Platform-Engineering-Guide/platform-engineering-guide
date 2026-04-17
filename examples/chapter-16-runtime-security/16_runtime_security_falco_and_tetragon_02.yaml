@@ -1,0 +1,21 @@
+# Falco Sidekick configuration
+outputs:
+  slack:
+    webhookurl: "https://hooks.slack.com/services/SECURITY_WEBHOOK"
+    minimumpriority: warning
+    messageformat: |
+      *Falco Security Alert* :rotating_light:
+      *Rule*: `{{ .Rule }}`
+      *Priority*: `{{ .Priority }}`
+      *Output*: {{ .Output }}
+      *Time*: {{ .Time }}
+
+  pagerduty:
+    routingKey: "${PAGERDUTY_SECURITY_KEY}"
+    minimumpriority: error
+
+  loki:
+    hostport: "http://loki.monitoring.svc.cluster.local:3100"
+    minimumpriority: warning
+    # Include Falco alerts in the same Loki instance as application logs
+    # for correlation during incident investigation

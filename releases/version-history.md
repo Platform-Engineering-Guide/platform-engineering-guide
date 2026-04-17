@@ -18,7 +18,7 @@ This document tracks official editions and printings of:
 
 Associated Errata:
 
-- errata/2026/errata-v1.md
+- errata/2026/errata-2026.md
 
 Tag: v2026.1.0
 

@@ -1,0 +1,16 @@
+# Binary Authorization policy — applied to the GKE cluster
+admissionWhitelistPatterns:
+  # Allow GKE system images without attestation
+  - namePattern: gcr.io/gke-release/*
+  - namePattern: gke.gcr.io/*
+
+clusterAdmissionRules:
+  europe-west1.workloads-production:
+    evaluationMode: REQUIRE_ATTESTATION
+    enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+    requireAttestationsBy:
+      - projects/workloads-production/attestors/platform-ci-attestor
+
+defaultAdmissionRule:
+  evaluationMode: ALWAYS_DENY    # Deny anything not explicitly allowed
+  enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG

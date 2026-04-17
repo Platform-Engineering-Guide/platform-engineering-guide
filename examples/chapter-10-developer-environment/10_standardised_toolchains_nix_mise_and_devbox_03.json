@@ -1,0 +1,23 @@
+// devbox.json — devbox configuration using Nix under the hood
+{
+  "packages": [
+    "jdk@21",
+    "maven@3.9.6",
+    "nodejs@22",
+    "kubectl@1.30",
+    "kubernetes-helm@3.15",
+    "awscli2@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "export JAVA_HOME=$(which java | xargs dirname | xargs dirname)",
+      "export MAVEN_OPTS='-Xmx2g -XX:+UseG1GC'",
+      "echo 'Run: devbox run dev to start the development server'"
+    ],
+    "scripts": {
+      "dev": "docker-compose up -d && mvn spring-boot:run",
+      "test": "mvn verify",
+      "build": "mvn package -DskipTests"
+    }
+  }
+}

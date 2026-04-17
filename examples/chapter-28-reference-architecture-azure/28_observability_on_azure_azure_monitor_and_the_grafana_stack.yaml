@@ -1,0 +1,19 @@
+# Mimir configuration for Azure Blob Storage backend
+mimir:
+  structuredConfig:
+    common:
+      storage:
+        backend: azure
+        azure:
+          account_name: ${AZURE_STORAGE_ACCOUNT}
+          account_key: ${AZURE_STORAGE_KEY}
+          container_name: mimir-blocks
+    blocks_storage:
+      azure:
+        container_name: mimir-blocks
+    alertmanager_storage:
+      azure:
+        container_name: mimir-alertmanager
+    ruler_storage:
+      azure:
+        container_name: mimir-ruler

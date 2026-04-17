@@ -1,0 +1,37 @@
+# Loki configuration — single-binary mode for moderate scale
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9095
+
+common:
+  path_prefix: /loki
+  storage:
+    s3:
+      endpoint: s3.eu-west-1.amazonaws.com
+      bucketnames: acme-loki-chunks
+      region: eu-west-1
+      s3forcepathstyle: false
+  replication_factor: 1     # Increase for HA deployments
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: s3
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  ingestion_rate_mb: 16
+  ingestion_burst_size_mb: 32
+  max_streams_per_user: 10000
+  retention_period: 744h    # 31 days
+
+compactor:
+  working_directory: /loki/compactor
+  retention_enabled: true
+  retention_delete_delay: 2h

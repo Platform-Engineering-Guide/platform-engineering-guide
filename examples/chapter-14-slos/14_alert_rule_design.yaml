@@ -1,0 +1,31 @@
+# Prometheus alerting rule with runbook reference
+groups:
+  - name: payments-service
+    rules:
+      - alert: PaymentsServiceHighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{
+              job="payments-service",
+              status_code=~"5.."
+            }[5m]))
+            /
+            sum(rate(http_requests_total{
+              job="payments-service"
+            }[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: payments-service
+          team: payments
+          routing_key: payments-oncall
+        annotations:
+          summary: "Payments service error rate above 5%"
+          description: >
+            The payments service error rate is {{ printf "%.2f" $value }}%,
+            exceeding the 5% threshold.
+            Current burn rate suggests error budget will be exhausted in
+            {{ printf "%.1f" (div 1 $value | mul 0.001) }} hours.
+          runbook: "https://wiki.acme.io/runbooks/payments/high-error-rate"
+          dashboard: "https://grafana.acme.io/d/payments-service?var-service=payments-service"

@@ -21,7 +21,7 @@ Chapters are reviewed in this order, reflecting their rate of change:
 
 *Chapter 21 (AI/ML Platforms):* GPU tooling, model serving frameworks, and LLMOps patterns are all subject to meaningful revision cadences. vLLM, KServe, and Ray Serve release significant changes on quarterly timescales.
 
-*Chapters 26–28 (Reference Architectures):* Configuration examples contain the highest concentration of version-specific content. Every `apiVersion`, image tag, and Helm chart version reference should be validated against current releases.
+*Chapters 26–29 (Reference Architectures):* Configuration examples contain the highest concentration of version-specific content. Every `apiVersion`, image tag, and Helm chart version reference should be validated against current releases.
 
 *Chapters 7–8 (Kubernetes, GitOps):* Kubernetes releases three minor versions per year. Managed service capabilities (EKS, GKE, AKS) change continuously. Argo CD and Flux both release on monthly or faster cadences.
 

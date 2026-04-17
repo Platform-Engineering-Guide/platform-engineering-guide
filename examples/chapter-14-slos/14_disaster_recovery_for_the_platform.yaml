@@ -1,0 +1,21 @@
+# Velero Schedule for daily platform namespace backup
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: platform-daily-backup
+  namespace: velero
+spec:
+  schedule: "0 2 * * *"
+  template:
+    includedNamespaces:
+      - argocd
+      - cert-manager
+      - external-secrets
+      - kyverno
+      - monitoring
+      - vault
+    storageLocation: default
+    volumeSnapshotLocations:
+      - default
+    ttl: 720h  # 30 days
+    snapshotVolumes: true

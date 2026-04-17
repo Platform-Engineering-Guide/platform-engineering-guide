@@ -1,0 +1,42 @@
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: payments-service
+  namespace: payments
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: payments-service
+  service:
+    port: 80
+    targetPort: 8080
+    gateways:
+      - public-gateway.istio-system.svc.cluster.local
+    hosts:
+      - payments.internal.acme.io
+  analysis:
+    interval: 1m
+    threshold: 5          # Max number of failed metric checks before rollback
+    maxWeight: 50         # Maximum canary traffic percentage
+    stepWeight: 10        # Increment per analysis interval
+    metrics:
+      - name: request-success-rate
+        thresholdRange:
+          min: 99         # Minimum 99% success rate
+        interval: 1m
+      - name: request-duration
+        thresholdRange:
+          max: 500        # Maximum 500ms P99 latency
+        interval: 1m
+    webhooks:
+      - name: load-test
+        url: http://flagger-loadtester.test/
+        timeout: 5s
+        metadata:
+          cmd: "hey -z 1m -q 10 -c 2 http://payments-service-canary.payments/"
+      - name: notify-deployment
+        url: https://hooks.slack.com/services/...
+        timeout: 5s
+        metadata:
+          text: "Canary deployment started for payments-service"

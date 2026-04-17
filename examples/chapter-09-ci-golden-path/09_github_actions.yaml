@@ -1,0 +1,27 @@
+# GitHub Actions OIDC authentication to AWS — no long-lived credentials
+name: Build and Deploy
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write   # Required for OIDC token request
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789:role/github-actions-cicd
+          role-session-name: github-${{ github.run_id }}
+          aws-region: eu-west-1
+          # The role's trust policy restricts this to specific repo + branch:
+          # "StringEquals": {
+          #   "token.actions.githubusercontent.com:sub":
+          #   "repo:acme-corp/payments-service:ref:refs/heads/main"
+          # }

@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payments-service
+  namespace: payments
+  annotations:
+    backstage.io/kubernetes-id: payments-service
+    app.kubernetes.io/name: payments-service
+    app.kubernetes.io/part-of: payments-platform
+    app.kubernetes.io/managed-by: argocd
+    owner: payments-team
+    tier: critical
+    cost-centre: payments-engineering

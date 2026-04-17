@@ -1,0 +1,18 @@
+# Actions Runner Controller — HorizontalRunnerAutoscaler
+# Scales GitHub Actions self-hosted runners on Kubernetes
+apiVersion: actions.summerwind.dev/v1alpha1
+kind: HorizontalRunnerAutoscaler
+metadata:
+  name: platform-runner-autoscaler
+  namespace: actions-runner-system
+spec:
+  scaleTargetRef:
+    name: platform-runners
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+    - type: TotalNumberOfQueuedAndInProgressWorkflowRuns
+      repositoryNames:
+        - acme-corp/payments-service
+        - acme-corp/orders-service
+        - acme-corp/api-gateway

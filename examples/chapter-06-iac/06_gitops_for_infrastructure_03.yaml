@@ -1,0 +1,78 @@
+name: Infrastructure CI
+
+on:
+  pull_request:
+    paths:
+      - 'infrastructure/**'
+      - 'modules/**'
+
+jobs:
+  terraform-plan:
+    name: Plan Infrastructure Changes
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write       # Required for OIDC authentication to AWS
+      contents: read
+      pull-requests: write  # Required to post plan as PR comment
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789:role/github-actions-terraform
+          aws-region: eu-west-1
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.7.0"
+
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Terraform Init
+        working-directory: infrastructure/environments/${{ env.TARGET_ENV }}
+        run: tofu init -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+
+      - name: Security Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: infrastructure/
+          framework: terraform
+          soft_fail: false
+          output_format: github_failed_only
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: infrastructure/environments/${{ env.TARGET_ENV }}
+        run: |
+          tofu plan -out=tfplan -no-color 2>&1 | tee plan_output.txt
+          echo "plan_output<<EOF" >> $GITHUB_OUTPUT
+          cat plan_output.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Cost Estimate
+        run: |
+          infracost breakdown --path infrastructure/environments/${{ env.TARGET_ENV }} \
+            --format json --out-file infracost.json
+          infracost comment github --path infracost.json \
+            --repo $GITHUB_REPOSITORY \
+            --pull-request ${{ github.event.pull_request.number }} \
+            --github-token ${{ secrets.GITHUB_TOKEN }} \
+            --behavior update
+
+      - name: Post Plan to PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const plan = `${{ steps.plan.outputs.plan_output }}`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Infrastructure Plan\n\`\`\`\n${plan}\n\`\`\``
+            });

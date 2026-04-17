@@ -1,0 +1,11 @@
+{
+  "name": "github-actions-platform-deploy",
+  "federatedIdentityCredentials": [
+    {
+      "name": "main-branch",
+      "issuer": "https://token.actions.githubusercontent.com",
+      "subject": "repo:acme-corp/platform:ref:refs/heads/main",
+      "audiences": ["api://AzureADTokenExchange"]
+    }
+  ]
+}

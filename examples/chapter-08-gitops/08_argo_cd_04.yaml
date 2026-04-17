@@ -1,0 +1,11 @@
+# Key HA configuration for the application controller
+# argocd-application-controller StatefulSet
+spec:
+  replicas: 3    # Three controller shards for large application counts
+  template:
+    spec:
+      containers:
+        - name: argocd-application-controller
+          env:
+            - name: ARGOCD_CONTROLLER_REPLICAS
+              value: "3"      # Must match StatefulSet replicas

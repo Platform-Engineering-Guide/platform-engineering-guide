@@ -1,0 +1,28 @@
+# Example: Argo CD application sync webhook to DORA event collector
+# In your Argo CD application manifest
+metadata:
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-succeeded.webhook: dora-collector
+---
+# Argo CD notifications configmap (simplified)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+data:
+  trigger.on-sync-succeeded: |
+    - when: app.status.operationState.phase in ['Succeeded']
+      send: [dora-deployment-event]
+  template.dora-deployment-event: |
+    webhook:
+      dora-collector:
+        method: POST
+        path: /events/deployment
+        body: |
+          {
+            "application": "{{.app.metadata.name}}",
+            "environment": "{{.app.metadata.annotations.environment}}",
+            "deployed_at": "{{.app.status.operationState.finishedAt}}",
+            "revision": "{{.app.status.sync.revision}}",
+            "team": "{{.app.metadata.labels.team}}"
+          }

@@ -1,0 +1,16 @@
+# GPU time-slicing configuration
+# Allows 4 pods to share a single GPU
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: time-slicing-config
+  namespace: gpu-operator
+data:
+  any: |-
+    version: v1
+    flags:
+      migStrategy: none
+    sharing:
+      timeSlicing:
+        replicas: 4
+        failRequestsGreaterThanOne: false

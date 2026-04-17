@@ -1,0 +1,9 @@
+# Each service repository contains its own infrastructure
+payments-service/
+├── src/
+├── deploy/               # Kubernetes manifests
+│   └── ...
+└── infrastructure/       # Service-owned cloud resources
+    ├── database.tf
+    ├── queues.tf
+    └── variables.tf

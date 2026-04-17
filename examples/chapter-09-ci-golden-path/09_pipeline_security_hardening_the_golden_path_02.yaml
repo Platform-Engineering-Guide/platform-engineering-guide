@@ -1,0 +1,6 @@
+# Add to every PR workflow
+- name: Dependency Review
+  uses: actions/dependency-review-action@v4
+  with:
+    fail-on-severity: critical
+    deny-licenses: GPL-3.0, AGPL-3.0  # If licence compliance is a concern

@@ -1,0 +1,44 @@
+apiVersion: opensearch.opster.io/v1
+kind: OpenSearchCluster
+metadata:
+  name: platform-logs
+  namespace: monitoring
+spec:
+  general:
+    version: 2.14.0
+    httpPort: 9200
+    vendor: opensearch
+    serviceName: platform-logs
+  security:
+    config:
+      adminCredentialsSecret:
+        name: opensearch-admin-credentials
+    tls:
+      transport:
+        generate: true
+      http:
+        generate: true
+  nodePools:
+    - component: master
+      replicas: 3
+      resources:
+        requests:
+          cpu: 500m
+          memory: 2Gi
+        limits:
+          cpu: 1000m
+          memory: 4Gi
+      diskSize: 30Gi
+    - component: data
+      replicas: 3
+      resources:
+        requests:
+          cpu: 1000m
+          memory: 4Gi
+        limits:
+          cpu: 2000m
+          memory: 8Gi
+      diskSize: 500Gi
+      roles:
+        - data
+        - ingest

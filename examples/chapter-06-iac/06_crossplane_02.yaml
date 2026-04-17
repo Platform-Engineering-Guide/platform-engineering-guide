@@ -1,0 +1,42 @@
+# Composition — defines how the abstract API maps to real resources
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: database-aws
+  labels:
+    provider: aws
+spec:
+  compositeTypeRef:
+    apiVersion: platform.acme.io/v1alpha1
+    kind: CompositeDatabase
+  resources:
+    - name: rds-instance
+      base:
+        apiVersion: rds.aws.upbound.io/v1beta1
+        kind: Instance
+        spec:
+          forProvider:
+            region: eu-west-1
+            engine: postgres
+            engineVersion: "16.2"
+            publiclyAccessible: false
+            storageEncrypted: true
+            skipFinalSnapshot: false
+          providerConfigRef:
+            name: aws-provider
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.tier
+          toFieldPath: spec.forProvider.instanceClass
+          transforms:
+            - type: map
+              map:
+                small:  db.t3.micro
+                medium: db.t3.small
+                large:  db.r6g.large
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.environment
+          toFieldPath: spec.forProvider.tags.Environment
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.name
+          toFieldPath: spec.forProvider.identifier

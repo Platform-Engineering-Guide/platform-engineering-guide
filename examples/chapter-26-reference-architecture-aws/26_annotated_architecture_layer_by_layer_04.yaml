@@ -1,0 +1,74 @@
+# crossplane/compositions/postgres-database.yaml
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: postgres-database.platform.internal
+  labels:
+    provider: aws
+    service: rds
+spec:
+  compositeTypeRef:
+    apiVersion: platform.internal/v1alpha1
+    kind: XPostgresDatabase
+  mode: Pipeline
+  pipeline:
+    - step: patch-and-transform
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: rds-instance
+            base:
+              apiVersion: rds.aws.upbound.io/v1beta1
+              kind: Instance
+              spec:
+                forProvider:
+                  engine: postgres
+                  engineVersion: "16.1"
+                  instanceClass: db.t4g.medium    # Default; overridable via claim
+                  allocatedStorage: 20
+                  storageEncrypted: true          # Always encrypted
+                  storageType: gp3
+                  multiAz: false                  # true for production tier
+                  backupRetentionPeriod: 7
+                  deletionProtection: true        # Always enabled
+                  autoMinorVersionUpgrade: true
+                  enabledCloudwatchLogsExports:
+                    - postgresql
+                  copyTagsToSnapshot: true
+                  skipFinalSnapshot: false
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.parameters.instanceClass
+                toFieldPath: spec.forProvider.instanceClass
+                transforms:
+                  - type: Map
+                    map:
+                      small: db.t4g.medium
+                      medium: db.m7g.large
+                      large: db.m7g.2xlarge
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.parameters.environment
+                toFieldPath: spec.forProvider.multiAz
+                transforms:
+                  - type: Map
+                    map:
+                      production: "true"
+                      staging: "false"
+                      development: "false"
+              - type: ToCompositeFieldPath
+                fromFieldPath: status.atProvider.endpoint
+                toFieldPath: status.endpoint
+          - name: credentials-secret
+            base:
+              apiVersion: secretsmanager.aws.upbound.io/v1beta1
+              kind: Secret
+              spec:
+                forProvider:
+                  generateSecretString:
+                    - secretStringTemplate: '{"username": "appuser"}'
+                      generateStringKey: password
+                      passwordLength: 32
+                      excludePunctuation: true

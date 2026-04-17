@@ -1,0 +1,30 @@
+# Teleport Kubernetes role allowing payments-team access to their namespace
+kind: role
+version: v7
+metadata:
+  name: payments-team-kube-access
+spec:
+  allow:
+    kubernetes_groups:
+      - "payments-developers"     # Maps to a Kubernetes RBAC group
+    kubernetes_labels:
+      environment: ["production", "staging"]
+    kubernetes_resources:
+      - kind: pod
+        namespace: payments
+        name: "*"
+        verbs: ["get", "list", "watch", "exec"]
+      - kind: deployment
+        namespace: payments
+        name: "*"
+        verbs: ["get", "list", "watch"]
+      - kind: secret
+        namespace: payments
+        name: "*"
+        verbs: []    # No secret access through kubectl
+  deny: {}
+  options:
+    max_session_ttl: 8h
+    require_session_mfa: true    # Require MFA for every session
+    record_session:
+      desktop: true

@@ -1,0 +1,36 @@
+{
+  "document": {
+    "category": "csaf_vex",
+    "csaf_version": "2.0",
+    "title": "Payments Service VEX",
+    "tracking": {
+      "id": "ACME-PAYMENTS-VEX-2026-001",
+      "initial_release_date": "2026-01-15T00:00:00Z",
+      "current_release_date": "2026-01-15T00:00:00Z",
+      "status": "final",
+      "version": "1.0.0"
+    }
+  },
+  "vulnerabilities": [
+    {
+      "cve": "CVE-2022-3786",
+      "notes": [
+        {
+          "category": "description",
+          "text": "OpenSSL X.509 Email Address Buffer Overflow"
+        }
+      ],
+      "product_status": {
+        "known_not_affected": ["ACME-PAYMENTS-SERVICE-V2.3.1"],
+        "justification": "not_reachable"
+      },
+      "remediations": [
+        {
+          "category": "no_fix_planned",
+          "details": "The vulnerable TLS certificate validation path is not exercised by the payments service. All TLS connections use pre-validated certificates.",
+          "date": "2026-01-15T00:00:00Z"
+        }
+      ]
+    }
+  ]
+}

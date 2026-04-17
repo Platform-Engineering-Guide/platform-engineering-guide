@@ -1,0 +1,83 @@
+# Default deny: applied to all pods in the namespace
+# Created by the Kyverno generate policy shown earlier
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: payments
+spec:
+  podSelector: {}    # Applies to all pods in namespace
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Allow ingress from the orders service to the payments API
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-orders-to-payments
+  namespace: payments
+spec:
+  podSelector:
+    matchLabels:
+      app: payments-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: orders
+          podSelector:
+            matchLabels:
+              app: orders-service
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# Allow payments service egress to its database and external payment gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: payments-egress-rules
+  namespace: payments
+spec:
+  podSelector:
+    matchLabels:
+      app: payments-service
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS resolution
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow connection to payments database
+    - to:
+        - podSelector:
+            matchLabels:
+              app: payments-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow connection to Stripe API (external)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8      # Not to internal networks
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow connection to secrets manager sidecar
+    - to:
+        - podSelector:
+            matchLabels:
+              app: vault-agent
+      ports:
+        - protocol: TCP
+          port: 8200

@@ -1,0 +1,42 @@
+# Cluster API: equivalent production cluster on GCP
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: production-gcp-euw1
+  namespace: clusters
+  labels:
+    cloud: gcp
+    region: europe-west1
+    environment: production
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["10.200.0.0/16"]
+    services:
+      cidrBlocks: ["10.201.0.0/16"]
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: GCPCluster
+    name: production-gcp-euw1
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    kind: KubeadmControlPlane
+    name: production-gcp-euw1-control-plane
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: GCPCluster
+metadata:
+  name: production-gcp-euw1
+  namespace: clusters
+spec:
+  project: workloads-production
+  region: europe-west1
+  network:
+    name: platform-vpc
+    subnets:
+      - name: gke-nodes-europe-west1
+        cidrBlock: "10.2.0.0/16"
+        region: europe-west1
+        secondaryCidrBlocks:
+          pods: "10.200.0.0/16"
+          services: "10.201.0.0/16"

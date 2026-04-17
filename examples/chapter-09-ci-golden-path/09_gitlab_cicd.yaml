@@ -1,0 +1,75 @@
+# .gitlab-ci.yml — GitLab CI pipeline for a containerised service
+stages:
+  - test
+  - build
+  - scan
+  - sign
+  - deploy
+
+variables:
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+
+test:
+  stage: test
+  image: maven:3.9-eclipse-temurin-21
+  script:
+    - mvn -B test
+  artifacts:
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+    when: always
+
+build:
+  stage: build
+  image: docker:25
+  services:
+    - docker:25-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG
+
+container-scan:
+  stage: scan
+  image: aquasec/trivy:latest
+  script:
+    - trivy image
+        --exit-code 1
+        --severity CRITICAL,HIGH
+        --format sarif
+        --output gl-container-scanning-report.json
+        $IMAGE_TAG
+  artifacts:
+    reports:
+      container_scanning: gl-container-scanning-report.json
+
+dependency-scan:
+  stage: scan
+  # GitLab's native dependency scanning — reads from language-specific manifests
+  include:
+    - template: Security/Dependency-Scanning.gitlab-ci.yml
+
+sign-image:
+  stage: sign
+  image: bitnami/cosign:latest
+  script:
+    - cosign sign --yes $IMAGE_TAG
+  only:
+    - main
+
+deploy-staging:
+  stage: deploy
+  environment:
+    name: staging
+    url: https://payments-staging.acme.corp
+  script:
+    - |
+      # Update kustomization in deployment repo
+      git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.acme.corp/platform/deployments.git
+      cd deployments
+      kustomize edit set image payments-service=$IMAGE_TAG
+      git commit -am "chore: update payments-service to $CI_COMMIT_SHA"
+      git push
+  only:
+    - main

@@ -1,0 +1,102 @@
+name: Build and Update Deployment Repository
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    name: Build, Scan, and Push Image
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      image-tag: ${{ steps.meta.outputs.version }}
+      image-digest: ${{ steps.build-push.outputs.digest }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789:role/github-actions-ecr
+          aws-region: eu-west-1
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/payments-service
+          tags: |
+            type=sha,prefix=,format=long
+            type=ref,event=branch
+
+      - name: Build and Push
+        id: build-push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true    # Generate SLSA provenance attestation
+          sbom: true          # Generate SBOM
+
+      - name: Scan Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/payments-service@${{ steps.build-push.outputs.digest }}
+          format: sarif
+          output: trivy-results.sarif
+          exit-code: 1        # Fail on CRITICAL/HIGH vulnerabilities
+          severity: CRITICAL,HIGH
+
+      - name: Sign Image with Cosign
+        uses: sigstore/cosign-installer@v3
+      
+      - run: |
+          cosign sign --yes \
+            ${{ steps.login-ecr.outputs.registry }}/payments-service@${{ steps.build-push.outputs.digest }}
+
+  update-deployment-repo:
+    name: Update Deployment Repository
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Deployment Repository
+        uses: actions/checkout@v4
+        with:
+          repository: acme-corp/payments-service-deploy
+          token: ${{ secrets.DEPLOY_REPO_PAT }}
+          path: deploy-repo
+
+      - name: Update Image Tag
+        working-directory: deploy-repo
+        run: |
+          # Update the image tag in the kustomization
+          cd overlays/staging
+          kustomize edit set image \
+            payments-service=${{ steps.login-ecr.outputs.registry }}/payments-service@${{ needs.build-and-push.outputs.image-digest }}
+
+      - name: Commit and Push
+        working-directory: deploy-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: update payments-service to ${{ needs.build-and-push.outputs.image-tag }}
+
+          Built from: ${{ github.repository }}@${{ github.sha }}
+          Workflow: ${{ github.run_id }}"
+          git push

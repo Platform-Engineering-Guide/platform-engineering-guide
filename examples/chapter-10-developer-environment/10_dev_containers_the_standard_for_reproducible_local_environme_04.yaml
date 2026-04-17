@@ -1,0 +1,14 @@
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/acme-corp/platform-devcontainer:2026.1
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: mvn -B package
+      - name: Test
+        run: mvn -B verify

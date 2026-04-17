@@ -1,0 +1,43 @@
+# Infrastructure CI golden path — GitHub Actions
+name: Infrastructure CI
+on:
+  pull_request:
+    paths:
+      - '**.tf'
+      - '**.yaml'  # Kubernetes manifests and Crossplane compositions
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+
+      - name: Validate Terraform/OpenTofu
+        run: |
+          tofu init -backend=false
+          tofu validate
+          tofu fmt -check -recursive
+
+      - name: Policy check with Conftest
+        run: |
+          conftest test --policy platform/policies/ .
+
+      - name: Cost estimation
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Run Infracost
+        run: |
+          infracost breakdown --path . \
+            --format json \
+            --out-file /tmp/infracost.json
+
+      - name: Post cost estimate to PR
+        uses: infracost/actions/comment@v3
+        with:
+          path: /tmp/infracost.json
+          behavior: update

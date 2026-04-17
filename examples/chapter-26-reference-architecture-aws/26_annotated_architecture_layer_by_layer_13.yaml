@@ -1,0 +1,36 @@
+# kyverno/policies/require-security-context.yaml
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-security-context
+  annotations:
+    policies.kyverno.io/title: Require Security Context
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >
+      All containers must run as non-root with a read-only root filesystem.
+      Drop all capabilities and only add those explicitly required.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: check-containers
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaceSelector:
+                matchExpressions:
+                  - key: platform.internal/policy-exempt
+                    operator: DoesNotExist
+      validate:
+        message: "Containers must have a security context with runAsNonRoot: true and readOnlyRootFilesystem: true"
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  runAsNonRoot: true
+                  readOnlyRootFilesystem: true
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                      - ALL

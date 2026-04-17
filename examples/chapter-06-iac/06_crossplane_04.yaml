@@ -1,0 +1,7 @@
+apiVersion: aws.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: aws-provider
+spec:
+  credentials:
+    source: IRSA  # Use IAM Roles for Service Accounts — no long-lived credentials

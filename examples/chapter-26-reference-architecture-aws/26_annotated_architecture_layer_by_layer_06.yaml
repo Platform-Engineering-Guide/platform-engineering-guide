@@ -1,0 +1,32 @@
+# catalog-info.yaml — lives in every service's repository root
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: payments-api
+  title: Payments API
+  description: Core payment processing service
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    github.com/project-slug: acme-corp/payments-api
+    argocd/app-name: payments-api
+    grafana/dashboard-selector: "service=payments-api"
+    opencost.io/enabled: "true"
+    pagerduty.com/service-id: P1ABC23
+  tags:
+    - payments
+    - pci
+    - golang
+  links:
+    - url: https://grafana.internal/d/payments-api
+      title: Grafana Dashboard
+      icon: dashboard
+spec:
+  type: service
+  lifecycle: production
+  owner: group:payments-engineering
+  system: core-payments
+  dependsOn:
+    - component:fraud-detection-api
+    - resource:payments-db
+  providesApis:
+    - payments-api-v2

@@ -1,0 +1,39 @@
+# Drift detection scheduled workflow — GitHub Actions
+# .github/workflows/drift-detection.yml
+
+name: Infrastructure Drift Detection
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+
+jobs:
+  detect-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.8.0"
+
+      - name: Check for drift
+        id: plan
+        run: |
+          tofu init
+          tofu plan -detailed-exitcode -out=drift.plan 2>&1
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+        env:
+          AWS_ROLE_ARN: ${{ secrets.DRIFT_DETECTION_ROLE_ARN }}
+        continue-on-error: true
+
+      - name: Alert on drift
+        if: steps.plan.outputs.exit_code == '2'
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "⚠️ Infrastructure drift detected in ${{ github.repository }}. Review: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.PLATFORM_ALERTS_WEBHOOK }}

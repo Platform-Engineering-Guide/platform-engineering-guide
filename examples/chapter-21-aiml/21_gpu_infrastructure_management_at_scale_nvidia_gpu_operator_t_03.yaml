@@ -1,0 +1,15 @@
+# MIG strategy ConfigMap — partition each A100 into 4 instances (2g.20gb profile)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mig-config
+  namespace: gpu-operator
+data:
+  config.yaml: |
+    version: v1
+    mig-configs:
+      all-2g.20gb:
+        - devices: all
+          mig-enabled: true
+          mig-devices:
+            "2g.20gb": 4

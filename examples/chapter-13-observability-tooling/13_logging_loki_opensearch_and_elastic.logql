@@ -1,0 +1,27 @@
+# Stream selector: select log streams by labels
+{namespace="payments", app="payments-service"}
+
+# Filter: find error logs in the payments service
+{namespace="payments", app="payments-service"}
+  |= "ERROR"
+
+# Pattern filter: find logs containing a specific HTTP status
+{namespace="payments"}
+  | json
+  | http_status_code = 500
+
+# Metric query: count error log lines per minute
+sum by (pod) (
+  count_over_time(
+    {namespace="payments"}
+    |= "ERROR"
+    [1m]
+  )
+)
+
+# Extraction: parse structured fields from JSON logs and filter
+{namespace="payments"}
+  | json
+  | payment_status = "failed"
+  | payment_method = "card"
+  | line_format "{{.timestamp}} {{.payment_id}} {{.error_message}}"

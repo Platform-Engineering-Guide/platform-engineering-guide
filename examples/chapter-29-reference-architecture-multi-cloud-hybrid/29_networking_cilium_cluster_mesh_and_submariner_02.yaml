@@ -1,0 +1,15 @@
+# Service annotated for global discovery across Cluster Mesh
+apiVersion: v1
+kind: Service
+metadata:
+  name: payments-api
+  namespace: payments-production
+  annotations:
+    service.cilium.io/global: "true"    # Visible across all clusters in the mesh
+    service.cilium.io/shared: "true"    # Local traffic preferred; remote as fallback
+spec:
+  selector:
+    app: payments-api
+  ports:
+    - port: 80
+      targetPort: 8080

@@ -1,0 +1,6 @@
+# FOSSA CI integration
+- name: FOSSA Analyse
+  uses: fossas/fossa-action@v1
+  with:
+    api-key: ${{ secrets.FOSSA_API_KEY }}
+    run-tests: true    # Block PR if licence policy violations found

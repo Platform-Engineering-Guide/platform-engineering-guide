@@ -1,0 +1,7 @@
+# EKS Pod Identity Association — managed through the EKS API or Terraform
+resource "aws_eks_pod_identity_association" "payments_service" {
+  cluster_name    = aws_eks_cluster.main.name
+  namespace       = "payments"
+  service_account = "payments-service"
+  role_arn        = aws_iam_role.payments_service.arn
+}

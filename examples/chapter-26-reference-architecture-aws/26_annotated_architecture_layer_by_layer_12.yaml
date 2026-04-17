@@ -1,0 +1,40 @@
+# external-secrets/cluster-secret-store.yaml
+# One ClusterSecretStore per AWS account, using IRSA for authentication
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterSecretStore
+metadata:
+  name: aws-secrets-manager
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: eu-west-1
+      auth:
+        jwt:
+          serviceAccountRef:
+            name: external-secrets
+            namespace: external-secrets
+---
+# Application-level ExternalSecret — developer creates this, ESO handles the rest
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: payments-db-credentials
+  namespace: payments-production
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  target:
+    name: payments-db-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: username
+      remoteRef:
+        key: /platform/payments/production/db-credentials
+        property: username
+    - secretKey: password
+      remoteRef:
+        key: /platform/payments/production/db-credentials
+        property: password

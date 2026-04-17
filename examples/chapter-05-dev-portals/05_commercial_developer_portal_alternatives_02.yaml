@@ -1,0 +1,35 @@
+# Example Cortex Scorecard Definition
+tag: production-readiness
+name: Production Readiness
+description: Checks that services meet minimum production readiness standards
+levels:
+  - tag: bronze
+    name: Bronze
+    rules:
+      - title: Has Owner
+        expression: git != null && git.defaultBranch != null
+        weight: 1
+      - title: Has Description
+        expression: description != null && description.length > 0
+        weight: 1
+  - tag: silver
+    name: Silver
+    rules:
+      - title: Has Runbooks
+        expression: runbooks != null && runbooks.length > 0
+        weight: 2
+      - title: Has On-Call
+        expression: oncall != null
+        weight: 2
+      - title: Has SLOs Defined
+        expression: custom["slos-defined"] == true
+        weight: 3
+  - tag: gold
+    name: Gold
+    rules:
+      - title: P99 Latency Monitored
+        expression: custom["p99-latency-alert"] == true
+        weight: 3
+      - title: Error Budget Tracked
+        expression: custom["error-budget-tracked"] == true
+        weight: 3

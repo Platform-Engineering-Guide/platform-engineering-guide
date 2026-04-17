@@ -1,0 +1,50 @@
+# crossplane/compositions/postgres-gcp.yaml — GCP-backed Postgres
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: postgres-database-gcp.platform.internal
+  labels:
+    provider: gcp
+    service: cloudsql
+spec:
+  compositeTypeRef:
+    apiVersion: platform.internal/v1alpha1
+    kind: XPostgresDatabase
+  mode: Pipeline
+  pipeline:
+    - step: patch-and-transform
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: cloudsql-instance
+            base:
+              apiVersion: sql.gcp.upbound.io/v1beta1
+              kind: DatabaseInstance
+              spec:
+                forProvider:
+                  databaseVersion: POSTGRES_16
+                  region: europe-west1
+                  settings:
+                    - availabilityType: REGIONAL
+                      backupConfiguration:
+                        - enabled: true
+                          pointInTimeRecoveryEnabled: true
+                      ipConfiguration:
+                        - ipv4Enabled: false
+                          requireSsl: true
+                      diskAutoresize: true
+                      diskType: PD_SSD
+                  deletionProtection: true
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.parameters.instanceClass
+                toFieldPath: spec.forProvider.settings[0].tier
+                transforms:
+                  - type: Map
+                    map:
+                      small: db-custom-2-7680
+                      medium: db-custom-4-15360
+                      large: db-custom-8-30720

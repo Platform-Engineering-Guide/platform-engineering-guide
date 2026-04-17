@@ -1,0 +1,17 @@
+# CI/CD pipeline steps: generate and attach SBOM
+- name: Generate SBOM
+  run: |
+    syft scan \
+      ${{ steps.login-ecr.outputs.registry }}/payments-service@${{ steps.build-push.outputs.digest }} \
+      --output cyclonedx-json \
+      --file sbom.cyclonedx.json \
+      --output spdx-json \
+      --file sbom.spdx.json
+
+- name: Attach SBOM to Image
+  run: |
+    cosign attest \
+      --yes \
+      --predicate sbom.cyclonedx.json \
+      --type cyclonedx \
+      ${{ steps.login-ecr.outputs.registry }}/payments-service@${{ steps.build-push.outputs.digest }}

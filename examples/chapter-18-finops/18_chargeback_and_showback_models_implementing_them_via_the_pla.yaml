@@ -1,0 +1,38 @@
+# Example Kyverno policy: enforce cost attribution labels
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-cost-attribution-labels
+  annotations:
+    policies.kyverno.io/title: Require Cost Attribution Labels
+    policies.kyverno.io/description: >
+      Enforces that all workload namespaces carry the labels required
+      for cost attribution. Labels are used by OpenCost/Kubecost to
+      allocate cloud costs to teams and cost centres.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-namespace-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - Namespace
+      exclude:
+        any:
+          - resources:
+              namespaceSelector:
+                matchLabels:
+                  platform.example.com/system: "true"
+      validate:
+        message: >
+          Namespace must include labels: team, cost-centre, product, environment.
+          See https://platform.example.com/docs/cost-attribution for details.
+        pattern:
+          metadata:
+            labels:
+              team: "?*"
+              cost-centre: "?*"
+              product: "?*"
+              environment: "?*"

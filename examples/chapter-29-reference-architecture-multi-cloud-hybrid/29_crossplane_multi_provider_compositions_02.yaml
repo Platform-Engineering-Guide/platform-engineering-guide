@@ -1,0 +1,24 @@
+# Function-based composition selection
+# The function reads the cluster label and selects the appropriate backing composition
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: postgres-database-auto.platform.internal
+spec:
+  compositeTypeRef:
+    apiVersion: platform.internal/v1alpha1
+    kind: XPostgresDatabase
+  mode: Pipeline
+  pipeline:
+    - step: select-provider
+      functionRef:
+        name: function-auto-ready   # Custom function: reads cluster cloud-provider label
+      input:
+        apiVersion: auto.fn.platform.internal/v1alpha1
+        kind: ProviderSelector
+        spec:
+          labelKey: cloud-provider
+          compositions:
+            aws: postgres-database-aws.platform.internal
+            gcp: postgres-database-gcp.platform.internal
+            azure: postgres-database-azure.platform.internal

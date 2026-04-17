@@ -1,0 +1,17 @@
+# GitHub Actions workflow step: sign image with Cosign
+- name: Install Cosign
+  uses: sigstore/cosign-installer@v3
+  with:
+    cosign-release: 'v2.2.0'
+
+- name: Sign Container Image
+  env:
+    COSIGN_EXPERIMENTAL: "true"    # Enable keyless signing
+  run: |
+    cosign sign --yes \
+      --oidc-issuer=https://token.actions.githubusercontent.com \
+      ${{ steps.login-ecr.outputs.registry }}/payments-service@${{ steps.build-push.outputs.digest }}
+
+# The --yes flag accepts the Sigstore transparency log upload
+# The signature is stored in the OCI registry co-located with the image
+# No private key management required — ephemeral key backed by OIDC token

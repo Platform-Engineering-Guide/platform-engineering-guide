@@ -1,0 +1,93 @@
+name: Secure Build Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-secure:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write       # For OIDC authentication
+      contents: read
+      security-events: write # For SARIF upload
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Dependency vulnerability scanning (fail on critical)
+      - name: Dependency Scan
+        uses: anchore/scan-action@v3
+        with:
+          path: "."
+          fail-build: true
+          severity-cutoff: high
+
+      # 2. Licence compliance check
+      - name: FOSSA Licence Scan
+        uses: fossas/fossa-action@v1
+        with:
+          api-key: ${{ secrets.FOSSA_API_KEY }}
+
+      # 3. Build image
+      - name: Build and Push Image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ env.REGISTRY }}/payments-service:${{ github.sha }}
+          provenance: true
+          sbom: true
+
+      # 4. Generate comprehensive SBOM
+      - name: Generate SBOM with Syft
+        run: |
+          syft ${{ env.REGISTRY }}/payments-service@${{ steps.build.outputs.digest }} \
+            --output cyclonedx-json=sbom.cyclonedx.json \
+            --output spdx-json=sbom.spdx.json
+
+      # 5. Scan built image for vulnerabilities
+      - name: Scan Image with Grype
+        run: |
+          grype ${{ env.REGISTRY }}/payments-service@${{ steps.build.outputs.digest }} \
+            --fail-on critical \
+            --output sarif \
+            --file image-scan.sarif
+
+      - name: Upload Scan Results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: image-scan.sarif
+
+      # 6. Sign image with Cosign (keyless)
+      - name: Sign Image
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/payments-service@${{ steps.build.outputs.digest }}
+
+      # 7. Attach SBOM as attestation
+      - name: Attach SBOM
+        run: |
+          cosign attest --yes \
+            --predicate sbom.cyclonedx.json \
+            --type cyclonedx \
+            ${{ env.REGISTRY }}/payments-service@${{ steps.build.outputs.digest }}
+
+      # 8. Generate and attach SLSA provenance
+      # (Using the SLSA GitHub Generator — runs as a separate reusable workflow
+      #  for true L3 provenance; shown here for illustration)
+      - name: Attest Build Provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/payments-service
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      # 9. Update deployment repository with signed image digest
+      - name: Update Deployment Repository
+        run: |
+          # Use image digest (not tag) to ensure the exact signed image is deployed
+          kustomize edit set image \
+            payments-service=${{ env.REGISTRY }}/payments-service@${{ steps.build.outputs.digest }}

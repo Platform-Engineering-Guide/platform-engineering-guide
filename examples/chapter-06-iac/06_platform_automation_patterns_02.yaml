@@ -1,0 +1,14 @@
+# NamespaceBundle composite resource definition
+# Provisions: namespace + RBAC + ResourceQuota + NetworkPolicy + ExternalSecret
+apiVersion: platform.acme.io/v1alpha1
+kind: NamespaceBundle
+metadata:
+  name: payments-service
+spec:
+  parameters:
+    teamName: payments-team
+    tier: critical        # Affects resource quotas and network policy strictness
+    environment: production
+  writeConnectionSecretToRef:
+    name: payments-service-platform-config
+    namespace: payments-service

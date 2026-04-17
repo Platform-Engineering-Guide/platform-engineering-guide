@@ -1,0 +1,35 @@
+{
+  "identifier": "microservice",
+  "title": "Microservice",
+  "icon": "Microservice",
+  "schema": {
+    "properties": {
+      "language": {
+        "type": "string",
+        "title": "Language",
+        "enum": ["Java", "Python", "Go", "TypeScript"]
+      },
+      "tier": {
+        "type": "string",
+        "title": "Service Tier",
+        "enum": ["critical", "standard", "internal"]
+      },
+      "deploymentFrequency": {
+        "type": "number",
+        "title": "Deployments per Week"
+      }
+    },
+    "required": ["language", "tier"]
+  },
+  "relations": {
+    "team": {
+      "title": "Owning Team",
+      "target": "team",
+      "required": true
+    },
+    "cluster": {
+      "title": "Deployed Cluster",
+      "target": "kubernetes_cluster"
+    }
+  }
+}

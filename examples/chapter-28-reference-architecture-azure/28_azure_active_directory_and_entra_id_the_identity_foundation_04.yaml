@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    azure.workload.identity/use: "true"  # Triggers token projection
+spec:
+  serviceAccountName: external-secrets-sa
+  containers:
+    - name: external-secrets
+      image: ghcr.io/external-secrets/external-secrets:latest

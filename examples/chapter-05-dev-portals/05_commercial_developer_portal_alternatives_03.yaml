@@ -1,0 +1,17 @@
+# Score workload specification (simplified)
+apiVersion: score.dev/v1b1
+metadata:
+  name: payments-service
+spec:
+  containers:
+    payments:
+      image: ${IMAGE}
+      resources:
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
+  resources:
+    db:
+      type: postgres
+    cache:
+      type: redis

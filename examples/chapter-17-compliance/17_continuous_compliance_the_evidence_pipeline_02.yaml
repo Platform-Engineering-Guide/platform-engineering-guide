@@ -1,0 +1,26 @@
+# Grafana dashboard panels for compliance visibility
+
+# Panel 1: Policy Violations (from Kyverno audit events)
+# Query: count of Kyverno policy violations by policy name, last 24h
+# Data source: Loki
+# LogQL: sum by (policy_name) (count_over_time({app="kyverno"} | json | action="fail" [24h]))
+
+# Panel 2: Critical Vulnerability Exposure (from Trivy Operator)
+# Query: count of critical vulnerabilities by namespace
+# Data source: Prometheus
+# PromQL: sum by (namespace) (trivy_image_vulnerabilities{severity="CRITICAL"})
+
+# Panel 3: Unsigned Image Deployment Attempts (from Kyverno)
+# Query: blocked deployments due to missing image signature
+# Data source: Loki
+# LogQL: count_over_time({app="kyverno"} | json | policy_name="require-signed-images" | action="deny" [7d])
+
+# Panel 4: Privileged Access Events (from Teleport audit log)
+# Query: JIT privilege escalation events
+# Data source: Loki
+# LogQL: count_over_time({job="teleport-audit"} | json | event="access_request.create" [7d])
+
+# Panel 5: Production Change Volume (from Argo CD)
+# Query: production deployment events
+# Data source: Prometheus
+# PromQL: sum(increase(argocd_app_sync_total{dest_namespace!~"kube-system|monitoring"}[7d]))

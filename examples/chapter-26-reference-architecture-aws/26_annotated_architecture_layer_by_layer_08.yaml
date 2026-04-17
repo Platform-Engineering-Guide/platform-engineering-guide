@@ -1,0 +1,54 @@
+# argocd/applicationsets/services.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-services
+  namespace: argocd
+spec:
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: https://github.com/acme-corp/service-registry
+              revision: HEAD
+              files:
+                - path: "services/*/config.yaml"
+          - list:
+              elements:
+                - env: development
+                  cluster: https://dev-cluster.eks.amazonaws.com
+                  namespace_suffix: ""
+                - env: staging
+                  cluster: https://staging-cluster.eks.amazonaws.com
+                  namespace_suffix: ""
+                - env: production
+                  cluster: https://prod-cluster.eks.amazonaws.com
+                  namespace_suffix: ""
+  template:
+    metadata:
+      name: "{{path.basename}}-{{env}}"
+      annotations:
+        notifications.argoproj.io/subscribe.on-sync-succeeded.slack: platform-deployments
+        notifications.argoproj.io/subscribe.on-sync-failed.slack: platform-alerts
+    spec:
+      project: "{{path.basename}}"
+      source:
+        repoURL: "{{repoURL}}"
+        targetRevision: "{{targetRevision}}"
+        path: "deploy/overlays/{{env}}"
+      destination:
+        server: "{{cluster}}"
+        namespace: "{{path.basename}}-{{env}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m

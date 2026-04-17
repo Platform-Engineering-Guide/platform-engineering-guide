@@ -49,7 +49,7 @@ areas have evolved.
 
 ## Get the Book
 
-Available at [www.yourdomain.com](https://www.yourdomain.com)
+Available at [https://platformengineringguide.com](https://platformengineringguide.com)
 
 ## Contact
 

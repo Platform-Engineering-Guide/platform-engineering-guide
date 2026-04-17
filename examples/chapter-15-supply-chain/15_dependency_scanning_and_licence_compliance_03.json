@@ -1,0 +1,10 @@
+// .npmrc — scope all internal packages to private registry
+@acme:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NPM_TOKEN}
+
+// package.json — use scoped names for all internal packages
+{
+  "dependencies": {
+    "@acme/payments-client": "^1.2.0"    // Scoped name prevents public registry confusion
+  }
+}

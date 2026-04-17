@@ -1,0 +1,26 @@
+gitops-config/
+├── apps/
+│   ├── payments-service/
+│   │   ├── base/
+│   │   │   ├── deployment.yaml
+│   │   │   ├── service.yaml
+│   │   │   └── kustomization.yaml
+│   │   └── overlays/
+│   │       ├── dev/
+│   │       │   ├── kustomization.yaml
+│   │       │   └── patches/
+│   │       │       └── replicas.yaml
+│   │       ├── staging/
+│   │       │   └── kustomization.yaml
+│   │       └── production/
+│   │           ├── kustomization.yaml
+│   │           └── patches/
+│   │               └── resources.yaml
+│   ├── orders-service/
+│   │   └── ...
+│   └── inventory-service/
+│       └── ...
+└── platform/
+    ├── cert-manager/
+    ├── external-secrets/
+    └── prometheus/

@@ -1,0 +1,8 @@
+# Service account with Azure Workload Identity annotation
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: payments-service
+  namespace: payments
+  annotations:
+    azure.workload.identity/client-id: "12345678-1234-1234-1234-123456789012"

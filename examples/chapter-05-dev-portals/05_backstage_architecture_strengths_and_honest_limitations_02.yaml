@@ -1,0 +1,98 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: java-microservice
+  title: Java Microservice
+  description: Creates a new Java Spring Boot microservice with CI/CD, 
+               Kubernetes deployment, and observability pre-configured
+  tags:
+    - java
+    - microservice
+    - recommended
+spec:
+  owner: platform-team
+  type: service
+
+  parameters:
+    - title: Service Details
+      required:
+        - serviceName
+        - owner
+        - description
+      properties:
+        serviceName:
+          title: Service Name
+          type: string
+          description: Name of the new service (lowercase, hyphens only)
+          pattern: '^[a-z][a-z0-9-]*[a-z0-9]$'
+        owner:
+          title: Owner
+          type: string
+          description: Team that owns this service
+          ui:field: OwnerPicker
+          ui:options:
+            allowedKinds:
+              - Group
+        description:
+          title: Description
+          type: string
+          description: Brief description of what this service does
+        environment:
+          title: Target Environment
+          type: string
+          enum:
+            - development
+            - staging
+          default: development
+
+  steps:
+    - id: fetch-skeleton
+      name: Fetch Repository Skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          serviceName: ${{ parameters.serviceName }}
+          owner: ${{ parameters.owner }}
+          description: ${{ parameters.description }}
+
+    - id: create-github-repo
+      name: Create GitHub Repository
+      action: github:repo:create
+      input:
+        repoUrl: github.com?owner=acme-corp&repo=${{ parameters.serviceName }}
+        description: ${{ parameters.description }}
+        defaultBranch: main
+        repoVisibility: internal
+
+    - id: push-content
+      name: Push Repository Content
+      action: github:repo:push
+      input:
+        repoUrl: github.com?owner=acme-corp&repo=${{ parameters.serviceName }}
+        defaultBranch: main
+
+    - id: create-argocd-app
+      name: Register in Argo CD
+      action: argocd:create-resources
+      input:
+        appName: ${{ parameters.serviceName }}
+        argoInstance: primary
+        namespace: ${{ parameters.serviceName }}
+        repoUrl: https://github.com/acme-corp/${{ parameters.serviceName }}
+        path: deploy/
+
+    - id: register-catalogue
+      name: Register in Service Catalogue
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['create-github-repo'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['create-github-repo'].output.remoteUrl }}
+      - title: Open in Catalog
+        icon: catalog
+        entityRef: ${{ steps['register-catalogue'].output.entityRef }}

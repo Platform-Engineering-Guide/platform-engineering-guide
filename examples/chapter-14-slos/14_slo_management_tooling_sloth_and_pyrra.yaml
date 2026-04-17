@@ -1,0 +1,72 @@
+apiVersion: sloth.slok.dev/v1
+kind: PrometheusServiceLevel
+metadata:
+  name: payments-service-slos
+  namespace: monitoring
+spec:
+  service: "payments-service"
+  labels:
+    team: payments
+    tier: critical
+
+  slos:
+    # Availability SLO
+    - name: "requests-availability"
+      objective: 99.9
+      description: >
+        99.9% of HTTP requests to the payments service succeed
+        (return non-5xx responses) in any rolling 30-day window.
+      sli:
+        events:
+          errorQuery: >
+            sum(rate(http_requests_total{
+              job="payments-service",
+              status_code=~"5.."
+            }[{{.window}}]))
+          totalQuery: >
+            sum(rate(http_requests_total{
+              job="payments-service"
+            }[{{.window}}]))
+      alerting:
+        name: PaymentsServiceAvailability
+        labels:
+          category: availability
+          routing_key: payments-oncall
+        annotations:
+          summary: "Payments service availability SLO breach"
+          runbook: "https://wiki.acme.io/runbooks/payments/availability"
+        pageAlert:
+          labels:
+            severity: critical
+        ticketAlert:
+          labels:
+            severity: warning
+
+    # Latency SLO
+    - name: "requests-latency"
+      objective: 99.0
+      description: >
+        99% of HTTP requests to the payments service complete
+        within 500ms in any rolling 30-day window.
+      sli:
+        events:
+          errorQuery: >
+            sum(rate(http_request_duration_seconds_bucket{
+              job="payments-service",
+              le="0.5"
+            }[{{.window}}]))
+          totalQuery: >
+            sum(rate(http_request_duration_seconds_count{
+              job="payments-service"
+            }[{{.window}}]))
+      alerting:
+        name: PaymentsServiceLatency
+        labels:
+          category: latency
+          routing_key: payments-oncall
+        pageAlert:
+          labels:
+            severity: critical
+        ticketAlert:
+          labels:
+            severity: warning

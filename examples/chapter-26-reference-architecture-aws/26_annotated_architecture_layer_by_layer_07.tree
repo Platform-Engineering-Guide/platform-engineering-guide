@@ -1,0 +1,20 @@
+payments-api/
+├── src/                          # Application source code
+├── Dockerfile
+├── catalog-info.yaml             # Backstage entity
+└── deploy/
+    ├── base/                     # Base Kubernetes manifests
+    │   ├── deployment.yaml
+    │   ├── service.yaml
+    │   ├── hpa.yaml
+    │   └── kustomization.yaml
+    └── overlays/
+        ├── development/
+        │   ├── kustomization.yaml
+        │   └── values.yaml       # Dev-specific overrides
+        ├── staging/
+        │   ├── kustomization.yaml
+        │   └── values.yaml
+        └── production/
+            ├── kustomization.yaml
+            └── values.yaml

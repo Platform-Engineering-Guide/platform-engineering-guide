@@ -1,0 +1,5 @@
+# Availability SLI: fraction of HTTP requests returning non-5xx responses
+sum(rate(http_requests_total{service="payments-service",
+                               status_code!~"5.."}[5m]))
+/
+sum(rate(http_requests_total{service="payments-service"}[5m]))

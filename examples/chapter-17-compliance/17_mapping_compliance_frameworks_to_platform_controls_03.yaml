@@ -1,0 +1,56 @@
+# kube-apiserver audit policy
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+  # Log all authentication and authorisation decisions at RequestResponse level
+  - level: RequestResponse
+    users: []
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    resources:
+      - group: ""
+        resources: ["secrets", "configmaps", "serviceaccounts"]
+      - group: "rbac.authorization.k8s.io"
+        resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+
+  # Log all pod exec and port-forward at Request level (captures command)
+  - level: Request
+    verbs: ["create"]
+    resources:
+      - group: ""
+        resources: ["pods/exec", "pods/portforward", "pods/attach"]
+
+  # Log all persistent volume and storage operations
+  - level: RequestResponse
+    resources:
+      - group: ""
+        resources: ["persistentvolumes", "persistentvolumeclaims"]
+
+  # Log node access
+  - level: RequestResponse
+    resources:
+      - group: ""
+        resources: ["nodes", "nodes/proxy"]
+
+  # Log all namespace operations
+  - level: RequestResponse
+    resources:
+      - group: ""
+        resources: ["namespaces"]
+
+  # Metadata only for high-volume read operations
+  - level: Metadata
+    verbs: ["get", "list", "watch"]
+    resources:
+      - group: "apps"
+        resources: ["deployments", "replicasets", "statefulsets"]
+
+  # Don't log routine health checks
+  - level: None
+    users: ["system:kube-proxy"]
+    verbs: ["watch"]
+    resources:
+      - group: ""
+        resources: ["endpoints", "services", "services/status"]
+
+  # Default: log metadata for everything else
+  - level: Metadata

@@ -1,0 +1,24 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-encrypted-storage
+  annotations:
+    compliance.acme.io/controls: "PCI-DSS-3.5, HIPAA-164.312-a-2-iv"
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: check-storage-class-encryption
+      match:
+        any:
+          - resources:
+              kinds: [PersistentVolumeClaim]
+              namespaceSelector:
+                matchLabels:
+                  data-classification: regulated
+      validate:
+        message: >
+          PersistentVolumeClaims in regulated namespaces must use an
+          encrypted storage class. Use 'gp3-encrypted' or 'io2-encrypted'.
+        pattern:
+          spec:
+            storageClassName: "*-encrypted"

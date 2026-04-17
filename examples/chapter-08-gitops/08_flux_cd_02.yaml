@@ -1,0 +1,58 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: prometheus-community
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://prometheus-community.github.io/helm-charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+  namespace: monitoring
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      version: ">=60.0.0 <61.0.0"    # Pin minor version, allow patches
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: flux-system
+      interval: 1h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: rollback    # Roll back on upgrade failure
+  rollback:
+    timeout: 10m
+    cleanupOnFail: true
+  values:
+    grafana:
+      enabled: true
+      adminPassword: ${GRAFANA_ADMIN_PASSWORD}  # Substituted from Secret
+      ingress:
+        enabled: true
+        hosts:
+          - grafana.internal.acme.io
+    prometheus:
+      prometheusSpec:
+        retention: 30d
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              accessModes: [ReadWriteOnce]
+              resources:
+                requests:
+                  storage: 100Gi
+  valuesFrom:
+    - kind: ConfigMap
+      name: kube-prometheus-stack-values
+      valuesKey: values.yaml

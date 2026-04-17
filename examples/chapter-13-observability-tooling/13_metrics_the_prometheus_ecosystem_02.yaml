@@ -1,0 +1,47 @@
+# kube-prometheus-stack values — key configuration
+prometheusOperator:
+  enabled: true
+
+prometheus:
+  prometheusSpec:
+    retention: 30d
+    retentionSize: "50GB"
+    replicas: 2             # HA: two Prometheus replicas with identical configs
+    shards: 1               # Increase for very large target counts
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 100Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 2000m
+        memory: 8Gi
+    # Enable remote write to Mimir for long-term storage
+    remoteWrite:
+      - url: http://mimir.monitoring.svc.cluster.local:9009/api/v1/push
+        remoteTimeout: 30s
+        queueConfig:
+          capacity: 10000
+          maxSamplesPerSend: 2000
+          batchSendDeadline: 5s
+
+alertmanager:
+  alertmanagerSpec:
+    replicas: 3
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          resources:
+            requests:
+              storage: 10Gi
+
+grafana:
+  enabled: false    # Deploy Grafana separately for more control

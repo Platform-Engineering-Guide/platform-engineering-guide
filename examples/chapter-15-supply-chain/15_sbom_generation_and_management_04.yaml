@@ -1,0 +1,13 @@
+- name: Scan for Vulnerabilities
+  run: |
+    grype \
+      ${{ steps.login-ecr.outputs.registry }}/payments-service@${{ steps.build-push.outputs.digest }} \
+      --fail-on critical \
+      --output sarif \
+      --file grype-results.sarif
+
+- name: Upload Vulnerability Scan Results
+  uses: github/codeql-action/upload-sarif@v3
+  if: always()    # Upload even if scan fails
+  with:
+    sarif_file: grype-results.sarif

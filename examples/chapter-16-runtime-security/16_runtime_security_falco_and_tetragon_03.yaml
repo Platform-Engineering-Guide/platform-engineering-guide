@@ -1,0 +1,51 @@
+# TracingPolicy: detect and block privilege escalation attempts
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: block-privilege-escalation
+spec:
+  kprobes:
+    # Monitor setuid system call
+    - call: "sys_setuid"
+      syscall: true
+      args:
+        - index: 0
+          type: "int"
+      selectors:
+        # Only apply to container processes (not host processes)
+        - matchNamespaces:
+            - namespace: Pid
+              operator: NotIn
+              values:
+                - "host_pid_ns"
+          matchActions:
+            - action: Sigkill    # Kill the process attempting privilege escalation
+---
+# TracingPolicy: monitor sensitive file access
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: monitor-sensitive-file-access
+spec:
+  kprobes:
+    - call: "security_file_open"
+      syscall: false
+      args:
+        - index: 0
+          type: "file"
+      selectors:
+        - matchArgs:
+            - index: 0
+              operator: "Prefix"
+              values:
+                - "/etc/shadow"
+                - "/etc/passwd"
+                - "/proc/1/environ"    # Init process environment (may contain secrets)
+          matchNamespaces:
+            - namespace: Mnt
+              operator: NotIn
+              values:
+                - "host_mnt_ns"
+          matchActions:
+            - action: Post    # Log the event
+              rateLimit: "1/minute"

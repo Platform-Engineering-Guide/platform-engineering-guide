@@ -1,0 +1,34 @@
+# External Secrets: sync from GCP Secret Manager
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterSecretStore
+metadata:
+  name: gcp-secret-manager
+spec:
+  provider:
+    gcpsm:
+      projectID: workloads-production
+      auth:
+        workloadIdentity:
+          clusterLocation: europe-west1
+          clusterName: workloads-production
+          serviceAccountRef:
+            name: external-secrets
+            namespace: external-secrets
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: payments-db-credentials
+  namespace: payments-production
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: gcp-secret-manager
+    kind: ClusterSecretStore
+  target:
+    name: payments-db-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: connection-string
+      remoteRef:
+        key: payments/production/db-connection-string

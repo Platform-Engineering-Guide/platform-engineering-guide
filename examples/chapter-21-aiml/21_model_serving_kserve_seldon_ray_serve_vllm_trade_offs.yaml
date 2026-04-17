@@ -1,0 +1,33 @@
+# KServe InferenceService for a PyTorch model
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: fraud-detection-model
+  namespace: ml-production
+  annotations:
+    serving.kserve.io/enable-prometheus-scraping: "true"
+spec:
+  predictor:
+    pytorch:
+      storageUri: "s3://your-model-bucket/fraud-detection/v3/"
+      resources:
+        requests:
+          cpu: "2"
+          memory: "8Gi"
+          nvidia.com/gpu: "1"
+        limits:
+          cpu: "4"
+          memory: "16Gi"
+          nvidia.com/gpu: "1"
+      runtimeVersion: "2.1.0"
+    minReplicas: 1
+    maxReplicas: 10
+    scaleTarget: 80    # Target GPU utilisation for autoscaling
+  transformer:
+    containers:
+      - image: your-registry/fraud-preprocessor:v2.1
+        name: transformer
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi

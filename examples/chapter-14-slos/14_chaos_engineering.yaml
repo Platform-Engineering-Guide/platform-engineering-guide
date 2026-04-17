@@ -1,0 +1,43 @@
+# PodChaos: kill a specific pod to test pod restart recovery
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: payments-pod-kill
+  namespace: chaos-testing
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces:
+      - payments
+    labelSelectors:
+      app: payments-service
+  schedule: "@every 10m"
+  duration: "30s"
+---
+# NetworkChaos: inject latency between services
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: payments-to-db-latency
+  namespace: chaos-testing
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - payments
+    labelSelectors:
+      app: payments-service
+  delay:
+    latency: "500ms"
+    jitter: "100ms"
+  direction: to
+  target:
+    selector:
+      namespaces:
+        - payments
+      labelSelectors:
+        app: postgres
+    mode: all
+  duration: "60s"

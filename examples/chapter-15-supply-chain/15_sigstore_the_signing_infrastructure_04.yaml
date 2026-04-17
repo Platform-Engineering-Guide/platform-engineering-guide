@@ -1,0 +1,40 @@
+# ClusterImagePolicy — enforce signing requirements for production deployments
+apiVersion: policy.sigstore.dev/v1beta1
+kind: ClusterImagePolicy
+metadata:
+  name: production-image-policy
+spec:
+  images:
+    # Apply to all images from the organisation's ECR registry
+    - glob: "123456789.dkr.ecr.eu-west-1.amazonaws.com/**"
+  authorities:
+    # Authority 1: Images must be signed by the CI/CD pipeline
+    - name: ci-pipeline
+      keyless:
+        url: https://fulcio.sigstore.dev
+        identities:
+          - issuer: https://token.actions.githubusercontent.com
+            subjectRegExp: "https://github.com/acme-corp/.*/\\.github/workflows/build\\.yaml@refs/heads/main"
+      ctlog:
+        url: https://rekor.sigstore.dev
+    # Authority 2: Images must have SLSA provenance attestation
+    - name: slsa-provenance
+      keyless:
+        url: https://fulcio.sigstore.dev
+        identities:
+          - issuer: https://token.actions.githubusercontent.com
+            subject: "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@refs/tags/v2.0.0"
+      attestations:
+        - name: must-have-slsa-provenance
+          predicateType: https://slsa.dev/provenance/v1
+          policy:
+            type: cue
+            data: |
+              import "strings"
+              predicateType: "https://slsa.dev/provenance/v1"
+              predicate: {
+                buildDefinition: {
+                  buildType: strings.HasPrefix(_, "https://slsa-framework.github.io/github-actions-buildtypes")
+                  externalParameters: workflow: repository: strings.HasPrefix(_, "https://github.com/acme-corp/")
+                }
+              }

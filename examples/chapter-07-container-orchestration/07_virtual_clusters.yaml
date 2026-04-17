@@ -1,0 +1,30 @@
+# vCluster installation via Helm
+helm upgrade --install my-vcluster vcluster \
+  --repo https://charts.loft.sh \
+  --namespace vcluster-payments \
+  --create-namespace \
+  --values - <<EOF
+controlPlane:
+  distro:
+    k8s:
+      version: "1.35"
+  statefulSet:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+sync:
+  toHost:
+    ingresses:
+      enabled: true
+    storageClasses:
+      enabled: false    # Use host storage classes
+  fromHost:
+    nodes:
+      enabled: true
+      selector:
+        all: true
+EOF

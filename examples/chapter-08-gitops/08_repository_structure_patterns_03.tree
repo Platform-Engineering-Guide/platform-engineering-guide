@@ -1,0 +1,10 @@
+# Root repository structure for App-of-Apps
+gitops-root/
+├── apps/
+│   ├── payments-service.yaml      # Argo CD Application referencing payments repo
+│   ├── orders-service.yaml        # Argo CD Application referencing orders repo
+│   └── inventory-service.yaml     # Argo CD Application referencing inventory repo
+└── platform/
+    ├── cert-manager.yaml
+    ├── external-secrets.yaml
+    └── prometheus-stack.yaml

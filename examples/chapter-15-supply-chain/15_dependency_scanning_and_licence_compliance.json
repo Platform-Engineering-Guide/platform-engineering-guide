@@ -1,0 +1,44 @@
+// renovate.json — Renovate configuration
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard"
+  ],
+  "schedule": ["before 9am on Monday"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "automerge": false,
+  "labels": ["dependencies", "renovate"],
+  "packageRules": [
+    {
+      // Auto-merge patch updates for trusted dependencies
+      "matchUpdateTypes": ["patch"],
+      "matchPackagePatterns": ["^org.springframework", "^io.micrometer"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      // Group AWS SDK updates into a single PR
+      "matchPackagePrefixes": ["software.amazon.awssdk"],
+      "groupName": "AWS SDK"
+    },
+    {
+      // Separate major version updates for careful review
+      "matchUpdateTypes": ["major"],
+      "labels": ["dependencies", "major-update", "needs-review"],
+      "prPriority": 10
+    },
+    {
+      // Pin Dockerfile base images to digest for reproducibility
+      "matchFileNames": ["Dockerfile"],
+      "pinDigests": true
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security", "vulnerability"],
+    "assignees": ["@security-team"],
+    "prPriority": 100
+  }
+}

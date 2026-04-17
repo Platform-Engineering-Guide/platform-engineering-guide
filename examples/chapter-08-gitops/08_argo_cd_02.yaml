@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: payments-service-all-environments
+  namespace: argocd
+spec:
+  generators:
+    # Matrix generator: combines cluster list with environment config
+    - matrix:
+        generators:
+          - list:
+              elements:
+                - cluster: dev
+                  url: https://dev-cluster.internal
+                  environment: dev
+                  replicaCount: "1"
+                - cluster: staging
+                  url: https://staging-cluster.internal
+                  environment: staging
+                  replicaCount: "2"
+                - cluster: production-eu
+                  url: https://prod-eu-cluster.internal
+                  environment: production
+                  replicaCount: "5"
+                - cluster: production-us
+                  url: https://prod-us-cluster.internal
+                  environment: production
+                  replicaCount: "5"
+  template:
+    metadata:
+      name: "payments-service-{{cluster}}"
+    spec:
+      project: payments-team
+      source:
+        repoURL: https://github.com/acme-corp/payments-service-deploy
+        targetRevision: main
+        path: "overlays/{{environment}}"
+        kustomize:
+          patches:
+            - target:
+                kind: Deployment
+                name: payments-service
+              patch: |
+                - op: replace
+                  path: /spec/replicas
+                  value: {{replicaCount}}
+      destination:
+        server: "{{url}}"
+        namespace: payments
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

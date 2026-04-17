@@ -1,0 +1,12 @@
+<!-- settings.xml — configure repository precedence -->
+<settings>
+  <mirrors>
+    <mirror>
+      <!-- Route all Maven requests through internal Artifactory -->
+      <!-- which proxies public repos and serves internal ones -->
+      <id>artifactory</id>
+      <mirrorOf>*</mirrorOf>
+      <url>https://artifactory.acme.io/artifactory/maven-virtual</url>
+    </mirror>
+  </mirrors>
+</settings>

@@ -1,0 +1,38 @@
+# grafana-alloy/config.alloy — multi-cloud metric collection
+# Deployed in each cluster; ships to central Mimir regardless of cloud
+
+prometheus.scrape "kubernetes_pods" {
+  targets    = discovery.kubernetes.pods.targets
+  forward_to = [prometheus.remote_write.central_mimir.receiver]
+}
+
+prometheus.remote_write "central_mimir" {
+  endpoint {
+    url = "https://mimir.platform.internal/api/v1/push"
+
+    # mTLS for inter-cloud security
+    tls_config {
+      cert_file = "/var/run/secrets/platform/tls.crt"
+      key_file  = "/var/run/secrets/platform/tls.key"
+      ca_file   = "/var/run/secrets/platform/ca.crt"
+    }
+
+    headers = {
+      "X-Scope-OrgID" = env("CLUSTER_TENANT_ID"),
+    }
+
+    queue_config {
+      # Buffer metrics locally during connectivity interruptions
+      capacity             = 100000
+      max_samples_per_send = 10000
+      batch_send_deadline  = "5s"
+    }
+  }
+
+  external_labels = {
+    cluster     = env("CLUSTER_NAME"),
+    cloud       = env("CLOUD_PROVIDER"),
+    region      = env("CLOUD_REGION"),
+    environment = env("ENVIRONMENT"),
+  }
+}

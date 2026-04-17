@@ -1,0 +1,32 @@
+# GitHub Actions: monorepo change detection + matrix build
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.changes.outputs.services }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            payments:
+              - 'services/payments/**'
+            orders:
+              - 'services/orders/**'
+            api-gateway:
+              - 'services/api-gateway/**'
+
+  build-service:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.services != '[]' }}
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.service }}
+        run: |
+          cd services/${{ matrix.service }}
+          docker build -t ${{ matrix.service }}:${{ github.sha }} .

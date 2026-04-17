@@ -1,0 +1,59 @@
+// Grafana dashboard JSON — USE/RED service dashboard template
+// This is a representative excerpt; full dashboard JSON is verbose
+{
+  "title": "${service_name} Service Dashboard",
+  "uid": "service-overview-template",
+  "templating": {
+    "list": [
+      {
+        "name": "service_name",
+        "type": "query",
+        "query": "label_values(http_requests_total, service_name)",
+        "label": "Service"
+      },
+      {
+        "name": "namespace",
+        "type": "query",
+        "query": "label_values(http_requests_total{service_name=\"$service_name\"}, namespace)",
+        "label": "Namespace"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Request Rate",
+      "type": "timeseries",
+      "targets": [{
+        "expr": "sum(rate(http_requests_total{service_name=\"$service_name\",namespace=\"$namespace\"}[2m]))",
+        "legendFormat": "req/s"
+      }]
+    },
+    {
+      "title": "Error Rate",
+      "type": "timeseries",
+      "targets": [{
+        "expr": "sum(rate(http_requests_total{service_name=\"$service_name\",namespace=\"$namespace\",http_status_code=~\"5..\"}[2m])) / sum(rate(http_requests_total{service_name=\"$service_name\",namespace=\"$namespace\"}[2m]))",
+        "legendFormat": "error rate"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              {"color": "green", "value": 0},
+              {"color": "yellow", "value": 0.01},
+              {"color": "red", "value": 0.05}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "P99 Latency",
+      "type": "timeseries",
+      "targets": [{
+        "expr": "histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{service_name=\"$service_name\",namespace=\"$namespace\"}[2m])))",
+        "legendFormat": "p99"
+      }]
+    }
+  ]
+}

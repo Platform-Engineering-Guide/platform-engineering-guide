@@ -1,0 +1,39 @@
+# Kubernetes ServiceAccount for a supervised write agent
+# Read access to most resources; write access scoped to non-production namespaces only
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: iac-generation-agent
+  namespace: platform-agents
+  annotations:
+    # IRSA annotation for AWS — agent assumes a scoped IAM role
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/iac-generation-agent-role
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: iac-generation-agent
+rules:
+  # Read access across the cluster for context gathering
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  # Write access to agent-specific namespace only
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["create", "update", "patch"]
+    # Namespace restriction enforced via RoleBinding, not ClusterRoleBinding
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: iac-generation-agent-write
+  namespace: agent-staging    # Write access only to staging namespace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: iac-generation-agent
+subjects:
+  - kind: ServiceAccount
+    name: iac-generation-agent
+    namespace: platform-agents

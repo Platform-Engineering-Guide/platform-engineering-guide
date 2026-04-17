@@ -13,7 +13,11 @@ unless otherwise stated.
 
 ## Contents
 
+- Contributions
+- Documents
 - Errata
+- Examples
+- Releases
 - Diagrams
 - Templates
 - Reference Materials

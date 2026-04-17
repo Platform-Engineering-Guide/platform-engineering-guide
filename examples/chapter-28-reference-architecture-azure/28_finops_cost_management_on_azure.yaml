@@ -1,0 +1,9 @@
+# OpenCost Helm values for AKS
+opencost:
+  exporter:
+    cloudProviderApiKey: ""  # Not needed for Azure Workload Identity
+  azure:
+    enabled: true
+    subscriptionId: ${AZURE_SUBSCRIPTION_ID}
+    clientId: ${AZURE_CLIENT_ID}  # Workload Identity client ID
+    tenantId: ${AZURE_TENANT_ID}

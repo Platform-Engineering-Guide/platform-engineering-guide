@@ -1,0 +1,54 @@
+# ClusterClass: reusable cluster template for production clusters
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: platform-production
+  namespace: clusters
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+      kind: KubeadmControlPlaneTemplate
+      name: platform-production-control-plane
+    machineInfrastructure:
+      ref:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: AWSMachineTemplate
+        name: platform-production-control-plane-machine
+  workers:
+    machineDeployments:
+      - class: general-workers
+        template:
+          bootstrap:
+            ref:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+              kind: KubeadmConfigTemplate
+              name: platform-production-worker
+          infrastructure:
+            ref:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+              kind: AWSMachineTemplate
+              name: platform-production-worker
+  variables:
+    - name: region
+      required: true
+      schema:
+        openAPIV3Schema:
+          type: string
+    - name: instanceType
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: m6i.xlarge
+  patches:
+    - name: region
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            kind: AWSCluster
+          jsonPatches:
+            - op: replace
+              path: /spec/region
+              valueFrom:
+                variable: region

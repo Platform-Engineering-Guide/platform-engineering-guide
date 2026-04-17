@@ -1,0 +1,8 @@
+# Kubernetes service account annotated for Workload Identity
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: payments-api
+  namespace: payments-production
+  annotations:
+    iam.gke.io/gcp-service-account: payments-api@workloads-production.iam.gserviceaccount.com

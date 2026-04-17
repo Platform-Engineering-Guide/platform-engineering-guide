@@ -12,11 +12,11 @@ Examples are organised by chapter. Each directory contains a README explaining t
 examples/
 ├── chapter-06-iac/          # Terraform, OpenTofu, Pulumi, Crossplane
 ├── chapter-08-gitops/       # Argo CD, Flux CD configurations
-├── chapter-10-secrets/      # Vault, OpenBao, External Secrets Operator
-├── chapter-13-slos/         # Sloth, Pyrra, Alertmanager rules
-├── chapter-14-supply-chain/ # Sigstore, SLSA, SBOM generation
-├── chapter-15-runtime/      # Kyverno, Falco, Tetragon policies
-└── chapter-19-ai-platform/  # AI governance, .cursorrules, pre-commit hooks
+├── chapter-11-secrets/      # Vault, OpenBao, External Secrets Operator
+├── chapter-14-slos/         # Sloth, Pyrra, Alertmanager rules
+├── chapter-15-supply-chain/ # Sigstore, SLSA, SBOM generation
+├── chapter-16-runtime/      # Kyverno, Falco, Tetragon policies
+└── chapter-20-ai-platform/  # AI governance, .cursorrules, pre-commit hooks
 ```
 
 ## Important Notes
@@ -40,9 +40,9 @@ Most examples assume:
 
 This repository is tagged to align with book editions:
 
-| Tag     | Edition            |
-|---------|--------------------|
-| `v2026` | 2026 First Edition |
+| Tag         | Edition            |
+|-------------|--------------------|
+| `v2026.1.0` | 2026 First Edition |
 
 If you are using the 2026 edition of the book, check out the `v2026` tag to ensure the examples match the text.
 
@@ -52,4 +52,4 @@ If an example contains an error or has been superseded by a breaking tool change
 
 ## Get the Book
 
-Available at [www.yourdomain.com](https://www.yourdomain.com)
+Available at [https://platformengineringguide.com](https://platformengineringguide.com)

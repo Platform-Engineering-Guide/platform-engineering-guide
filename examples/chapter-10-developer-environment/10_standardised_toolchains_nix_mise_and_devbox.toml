@@ -1,0 +1,27 @@
+# .mise.toml — committed to the repository root
+[tools]
+java = "21.0.3"
+maven = "3.9.6"
+node = "22.3.0"
+python = "3.12.3"
+kubectl = "1.35.0"
+helm = "3.15.0"
+terraform = "1.8.0"    # Or opentofu = "1.7.0"
+argocd = "2.11.0"
+awscli = "2.15.0"
+
+[env]
+JAVA_HOME = "{{env.MISE_DATA_DIR}}/installs/java/21.0.3"
+MAVEN_OPTS = "-Xmx2g -XX:+UseG1GC"
+
+[tasks.dev]
+run = "docker-compose up -d && mvn spring-boot:run"
+description = "Start local development environment"
+
+[tasks.test]
+run = "mvn verify"
+description = "Run test suite"
+
+[tasks.build]
+run = "mvn package -DskipTests"
+description = "Build without tests"

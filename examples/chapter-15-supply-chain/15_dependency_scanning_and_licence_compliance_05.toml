@@ -1,0 +1,5 @@
+# pyproject.toml — specify index URL explicitly
+[tool.poetry.source]
+name = "acme-pypi"
+url = "https://artifactory.acme.io/artifactory/api/pypi/python-virtual/simple"
+priority = "primary"

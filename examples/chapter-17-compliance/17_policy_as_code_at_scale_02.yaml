@@ -1,0 +1,16 @@
+# tests/baseline/pod-security_test.yaml
+name: test-disallow-privileged
+policies:
+  - ../../baseline/pod-security/disallow-privileged.yaml
+resources:
+  - resource/privileged-pod.yaml
+  - resource/compliant-pod.yaml
+results:
+  - policy: disallow-privileged-containers
+    rule: privileged-containers
+    resource: privileged-pod
+    result: fail
+  - policy: disallow-privileged-containers
+    rule: privileged-containers
+    resource: compliant-pod
+    result: pass

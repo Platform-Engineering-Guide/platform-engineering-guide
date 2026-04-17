@@ -1,0 +1,129 @@
+# Tekton Task: build and push a container image with Kaniko
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: kaniko-build-push
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: IMAGE
+      description: Container image to build and push
+    - name: DOCKERFILE
+      default: ./Dockerfile
+    - name: CONTEXT
+      default: ./
+  workspaces:
+    - name: source
+      description: Source code workspace
+    - name: dockerconfig
+      description: Docker registry credentials
+      mountPath: /kaniko/.docker
+  steps:
+    - name: build-and-push
+      image: gcr.io/kaniko-project/executor:v1.21.0
+      args:
+        - --dockerfile=$(params.DOCKERFILE)
+        - --context=$(workspaces.source.path)/$(params.CONTEXT)
+        - --destination=$(params.IMAGE)
+        - --cache=true
+        - --cache-repo=$(params.IMAGE)-cache
+      securityContext:
+        runAsUser: 0
+---
+# Tekton Task: run Trivy image scan
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: trivy-scan
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: IMAGE
+    - name: SEVERITY
+      default: "CRITICAL,HIGH"
+  steps:
+    - name: scan
+      image: aquasec/trivy:latest
+      command:
+        - trivy
+        - image
+        - --exit-code=1
+        - --severity=$(params.SEVERITY)
+        - --format=table
+        - $(params.IMAGE)
+---
+# Tekton Pipeline: build, scan, sign, deploy
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: build-scan-deploy
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: git-url
+    - name: git-revision
+    - name: image-name
+    - name: deploy-repo-url
+  workspaces:
+    - name: source
+    - name: dockerconfig
+  tasks:
+    - name: clone
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      workspaces:
+        - name: output
+          workspace: source
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+
+    - name: run-tests
+      taskRef:
+        name: maven-test
+      runAfter: [clone]
+      workspaces:
+        - name: source
+          workspace: source
+
+    - name: build-image
+      taskRef:
+        name: kaniko-build-push
+      runAfter: [run-tests]
+      workspaces:
+        - name: source
+          workspace: source
+        - name: dockerconfig
+          workspace: dockerconfig
+      params:
+        - name: IMAGE
+          value: $(params.image-name):$(params.git-revision)
+
+    - name: scan-image
+      taskRef:
+        name: trivy-scan
+      runAfter: [build-image]
+      params:
+        - name: IMAGE
+          value: $(params.image-name):$(params.git-revision)
+
+    - name: sign-image
+      taskRef:
+        name: cosign-sign
+      runAfter: [scan-image]
+      params:
+        - name: IMAGE
+          value: $(params.image-name):$(params.git-revision)
+
+    - name: update-deployment
+      taskRef:
+        name: kustomize-image-update
+      runAfter: [sign-image]
+      params:
+        - name: IMAGE
+          value: $(params.image-name):$(params.git-revision)
+        - name: REPO_URL
+          value: $(params.deploy-repo-url)

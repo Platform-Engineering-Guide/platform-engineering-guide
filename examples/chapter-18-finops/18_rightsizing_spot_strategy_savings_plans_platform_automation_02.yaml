@@ -1,0 +1,26 @@
+# Spot-eligible workload configuration
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: batch-processor
+  namespace: data-team
+spec:
+  replicas: 10
+  template:
+    spec:
+      tolerations:
+        - key: "spot-instance"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      nodeSelector:
+        node.kubernetes.io/instance-type-family: spot
+      terminationGracePeriodSeconds: 120  # Allow time to checkpoint on interruption
+      containers:
+        - name: processor
+          # ... container spec
+          lifecycle:
+            preStop:
+              exec:
+                # Application must handle SIGTERM and checkpoint state
+                command: ["/bin/sh", "-c", "kill -TERM 1 && sleep 30"]

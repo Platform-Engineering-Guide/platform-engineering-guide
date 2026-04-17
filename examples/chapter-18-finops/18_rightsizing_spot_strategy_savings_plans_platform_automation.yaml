@@ -1,0 +1,25 @@
+# VPA configuration in recommendation mode — safe default
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: my-service
+  namespace: my-team
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: my-service
+  updatePolicy:
+    updateMode: "Off"  # Recommendation only — never restart pods automatically
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "*"
+        minAllowed:
+          cpu: 50m        # Never recommend below 50m CPU
+          memory: 64Mi    # Never recommend below 64Mi memory
+        maxAllowed:
+          cpu: 4           # Cap recommendations at 4 CPU
+          memory: 8Gi      # Cap at 8Gi memory
+        controlledResources:
+          - cpu
+          - memory

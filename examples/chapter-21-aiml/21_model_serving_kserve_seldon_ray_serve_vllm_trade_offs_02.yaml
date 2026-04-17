@@ -1,0 +1,49 @@
+# vLLM deployment for Llama 3.1 70B on an H100 node
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama-3-70b-inference
+  namespace: llm-serving
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llama-3-70b
+  template:
+    metadata:
+      labels:
+        app: llama-3-70b
+        team: ml-platform
+    spec:
+      nodeSelector:
+        nvidia.com/gpu.product: NVIDIA-H100-80GB-HBM3
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.4.0
+          args:
+            - --model
+            - meta-llama/Meta-Llama-3.1-70B-Instruct
+            - --tensor-parallel-size
+            - "4"           # Spread across 4 GPUs
+            - --max-model-len
+            - "8192"
+            - --gpu-memory-utilization
+            - "0.90"
+            - --served-model-name
+            - "llama-3-70b"
+          ports:
+            - containerPort: 8000
+          resources:
+            limits:
+              nvidia.com/gpu: "4"
+              memory: "160Gi"
+            requests:
+              nvidia.com/gpu: "4"
+              memory: "160Gi"
+          volumeMounts:
+            - name: model-cache
+              mountPath: /root/.cache/huggingface
+      volumes:
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: model-cache-pvc

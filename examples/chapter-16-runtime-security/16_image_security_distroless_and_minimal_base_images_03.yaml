@@ -1,0 +1,10 @@
+# Trivy Operator configuration
+apiVersion: aquasecurity.github.io/v1alpha1
+kind: ConfigAuditReport
+metadata:
+  name: payments-service-audit
+  namespace: payments
+# The Trivy Operator continuously scans running pods and generates
+# VulnerabilityReport and ConfigAuditReport resources for each workload.
+# These are queryable through the Kubernetes API and can be
+# integrated into the developer portal for visibility.

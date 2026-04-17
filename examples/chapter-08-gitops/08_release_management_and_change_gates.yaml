@@ -1,0 +1,16 @@
+# In AppProject specification
+spec:
+  syncWindows:
+    - kind: allow
+      schedule: "Mon-Fri 09:00-17:00"    # Allow automated syncs during business hours
+      duration: 8h
+      applications:
+        - "*"
+      namespaces:
+        - "*"
+      clusters:
+        - "*"
+    - kind: deny
+      schedule: "Fri 16:00-Mon 09:00"    # Deny automated syncs over weekends
+      duration: 65h
+      manualSync: true                   # Still allow manual syncs in emergencies

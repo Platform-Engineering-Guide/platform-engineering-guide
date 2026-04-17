@@ -1,0 +1,9 @@
+# GitHub Actions: Docker layer caching via GitHub cache backend
+- name: Build and Push
+  uses: docker/build-push-action@v6
+  with:
+    context: .
+    push: true
+    tags: ${{ env.IMAGE_TAG }}
+    cache-from: type=gha          # Read cache from GitHub Actions cache
+    cache-to: type=gha,mode=max   # Write all layers to cache

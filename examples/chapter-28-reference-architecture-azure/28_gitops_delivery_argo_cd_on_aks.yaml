@@ -1,0 +1,21 @@
+# Argo CD SSO configuration — values.yaml for the Argo CD Helm chart
+configs:
+  cm:
+    url: https://argocd.platform.acme.corp
+    oidc.config: |
+      name: Azure AD
+      issuer: https://login.microsoftonline.com/<tenant-id>/v3.0
+      clientID: <app-registration-client-id>
+      clientSecret: $oidc.azure.clientSecret
+      requestedIDTokenClaims:
+        groups:
+          essential: true
+      requestedScopes:
+        - openid
+        - profile
+        - email
+        - offline_access
+  rbac:
+    policy.csv: |
+      g, platform-engineers@acme.corp, role:admin
+      g, developers@acme.corp, role:readonly

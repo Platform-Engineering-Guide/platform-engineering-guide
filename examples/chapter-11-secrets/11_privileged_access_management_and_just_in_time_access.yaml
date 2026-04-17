@@ -1,0 +1,31 @@
+# Teleport role allowing access requests for production cluster-admin
+kind: role
+version: v7
+metadata:
+  name: production-emergency-access
+spec:
+  allow:
+    kubernetes_groups:
+      - "cluster-admin"
+    kubernetes_labels:
+      environment: ["production"]
+  options:
+    max_session_ttl: 1h              # Maximum 1 hour for emergency access
+    require_session_mfa: true
+    request_access: optional
+    request_prompt: "Describe the incident requiring elevated access"
+---
+# Requester role — can request production-emergency-access but not use it directly
+kind: role
+version: v7
+metadata:
+  name: platform-engineer
+spec:
+  allow:
+    request:
+      roles:
+        - production-emergency-access
+      thresholds:
+        - approve: 1              # Requires 1 approver
+          deny: 1
+          filter: '!equals(reviewer.name, requester.name)'  # Cannot self-approve

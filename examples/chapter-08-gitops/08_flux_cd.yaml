@@ -1,0 +1,44 @@
+# Source: watches the deployment repository
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: payments-service-deploy
+  namespace: flux-system
+spec:
+  interval: 1m        # Check for changes every minute
+  url: https://github.com/acme-corp/payments-service-deploy
+  ref:
+    branch: main
+  secretRef:
+    name: github-credentials
+---
+# Reconciler: applies manifests from the source
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: payments-service-production
+  namespace: flux-system
+spec:
+  interval: 10m           # Reconcile every 10 minutes (drift correction)
+  retryInterval: 1m       # Retry on failure after 1 minute
+  timeout: 5m             # Fail reconciliation after 5 minutes
+  sourceRef:
+    kind: GitRepository
+    name: payments-service-deploy
+  path: ./overlays/production
+  prune: true             # Delete resources removed from Git
+  wait: true              # Wait for resources to become ready before marking success
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: payments-service
+      namespace: payments
+  postBuild:
+    substitute:
+      ENVIRONMENT: production
+      CLUSTER_REGION: eu-west-1
+    substituteFrom:
+      - kind: ConfigMap
+        name: cluster-vars
+      - kind: Secret
+        name: cluster-secrets

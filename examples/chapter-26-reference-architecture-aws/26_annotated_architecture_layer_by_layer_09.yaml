@@ -1,0 +1,18 @@
+# prometheus/values.yaml — remote_write configuration for centralised Mimir
+prometheus:
+  prometheusSpec:
+    remoteWrite:
+      - url: https://mimir.platform.internal/api/v1/push
+        headers:
+          X-Scope-OrgID: "workloads"
+        tlsConfig:
+          insecureSkipVerify: false
+        writeRelabelConfigs:
+          - sourceLabels: [__name__]
+            regex: "go_.*|process_.*"
+            action: drop            # Drop high-cardinality Go runtime metrics at source
+    retention: 2h                  # Short local retention; Mimir holds long-term data
+    externalLabels:
+      cluster: "${cluster_name}"
+      environment: "${environment}"
+      region: "${aws_region}"

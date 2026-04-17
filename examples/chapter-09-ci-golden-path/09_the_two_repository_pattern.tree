@@ -1,0 +1,19 @@
+# Repository structure — two-repo GitOps pattern
+
+acme-corp/payments-service          # Source repository
+├── src/
+├── Dockerfile
+├── pom.xml
+└── .github/workflows/
+    └── ci.yml                      # CI pipeline: test, build, scan, sign, update deploy repo
+
+acme-corp/payments-service-deploy   # Deployment repository (written by CI, read by Argo CD)
+├── base/
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── kustomization.yaml
+└── overlays/
+    ├── staging/
+    │   └── kustomization.yaml      # Updated by CI: kustomize edit set image ...
+    └── production/
+        └── kustomization.yaml      # Updated by promotion workflow or manual PR

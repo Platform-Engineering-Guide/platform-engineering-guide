@@ -1,0 +1,54 @@
+# Terraform PagerDuty configuration
+resource "pagerduty_schedule" "payments_oncall" {
+  name      = "Payments On-Call"
+  time_zone = "Europe/London"
+
+  layer {
+    name                         = "Primary"
+    start                        = "2026-01-06T00:00:00+00:00"
+    rotation_virtual_start       = "2026-01-06T09:00:00+00:00"
+    rotation_turn_length_seconds = 604800  # 7 days
+
+    users = [
+      data.pagerduty_user.alice.id,
+      data.pagerduty_user.bob.id,
+      data.pagerduty_user.carol.id,
+      data.pagerduty_user.david.id,
+    ]
+  }
+}
+
+resource "pagerduty_escalation_policy" "payments" {
+  name      = "Payments Escalation Policy"
+  num_loops = 2
+
+  rule {
+    escalation_delay_in_minutes = 5
+
+    target {
+      type = "schedule_reference"
+      id   = pagerduty_schedule.payments_oncall.id
+    }
+  }
+
+  rule {
+    escalation_delay_in_minutes = 10
+
+    target {
+      type = "user_reference"
+      id   = data.pagerduty_user.payments_lead.id
+    }
+  }
+}
+
+resource "pagerduty_service" "payments" {
+  name                    = "Payments Service"
+  escalation_policy       = pagerduty_escalation_policy.payments.id
+  alert_creation          = "create_alerts_and_incidents"
+  acknowledgement_timeout = 600   # 10 minutes to acknowledge before escalation
+  auto_resolve_timeout    = 14400 # Auto-resolve after 4 hours if no activity
+
+  alert_grouping_parameters {
+    type = "intelligent"  # AI-based alert grouping
+  }
+}

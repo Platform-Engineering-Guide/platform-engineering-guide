@@ -1,0 +1,38 @@
+# Platform-level Instrumentation resource
+# Created by the platform team; applies to annotated pods automatically
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: platform-instrumentation
+  namespace: opentelemetry-operator-system
+spec:
+  exporter:
+    endpoint: http://otel-collector.monitoring.svc.cluster.local:4317
+  propagators:
+    - tracecontext
+    - baggage
+    - b3            # For compatibility with services using B3 propagation
+  sampler:
+    type: parentbased_traceidratio
+    argument: "0.1"   # 10% sampling rate for non-error traces
+  java:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.5.0
+    env:
+      - name: OTEL_INSTRUMENTATION_MESSAGING_EXPERIMENTAL_RECEIVE_TELEMETRY_ENABLED
+        value: "true"
+  python:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:0.46b0
+  nodejs:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-nodejs:0.52.0
+---
+# Application deployment annotated for auto-instrumentation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payments-service
+  namespace: payments
+spec:
+  template:
+    metadata:
+      annotations:
+        instrumentation.opentelemetry.io/inject-java: "opentelemetry-operator-system/platform-instrumentation"

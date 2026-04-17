@@ -1,0 +1,42 @@
+# OPA policy: classify change impact and require appropriate approval
+# rego/agent_approval_policy.rego
+
+package platform.agents.approval
+
+import future.keywords.if
+import future.keywords.contains
+
+# Default: require approval for all agent-initiated changes
+default allow = false
+
+# Autonomous approval: reversible, low-impact operations within bounds
+allow if {
+    input.agent.tier == "autonomous-write"
+    input.action.type in autonomous_allowed_actions
+    within_scaling_bounds(input.action)
+    input.target.environment != "production"  # Autonomous only in non-prod
+}
+
+# Autonomous approval for specific production remediation actions
+allow if {
+    input.agent.tier == "autonomous-write"
+    input.action.type == "restart_pod"
+    input.action.reason == "crash_loop_backoff"
+    # Must have active incident
+    active_incident_exists(input.target.service)
+}
+
+autonomous_allowed_actions contains action if {
+    action := ["scale_deployment", "restart_pod", "clear_queue"][_]
+}
+
+within_scaling_bounds(action) if {
+    action.type == "scale_deployment"
+    action.parameters.replicas >= action.current_replicas * 0.5
+    action.parameters.replicas <= action.current_replicas * 3
+}
+
+active_incident_exists(service) if {
+    # Check PagerDuty API for active incident affecting this service
+    count(data.incidents[service]) > 0
+}

@@ -1,0 +1,42 @@
+{
+  "_type": "https://in-toto.io/Statement/v0.1",
+  "predicateType": "https://slsa.dev/provenance/v1",
+  "subject": [
+    {
+      "name": "123456789.dkr.ecr.eu-west-1.amazonaws.com/payments-service",
+      "digest": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+      "externalParameters": {
+        "workflow": {
+          "ref": "refs/heads/main",
+          "repository": "https://github.com/acme-corp/payments-service",
+          "path": ".github/workflows/build.yaml"
+        }
+      },
+      "resolvedDependencies": [
+        {
+          "uri": "git+https://github.com/acme-corp/payments-service@refs/heads/main",
+          "digest": {
+            "gitCommit": "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"
+          }
+        }
+      ]
+    },
+    "runDetails": {
+      "builder": {
+        "id": "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@refs/tags/v2.0.0"
+      },
+      "metadata": {
+        "invocationId": "https://github.com/acme-corp/payments-service/actions/runs/12345678",
+        "startedOn": "2026-01-15T14:30:00Z",
+        "finishedOn": "2026-01-15T14:35:00Z"
+      }
+    }
+  }
+}

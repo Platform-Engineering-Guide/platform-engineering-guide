@@ -1,0 +1,40 @@
+%%{init: {'themeVariables': {
+  'primaryColor': '#d6ecff',
+  'primaryBorderColor': '#4a90e2',
+  'lineColor': '#4a90e2',
+  'fontColor': '#0b1f33'
+  "themeVariables": {
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  "flowchart": {
+    "htmlLabels": false
+  }
+  }
+}}}%%
+
+flowchart TB
+
+subgraph DCP["DEVELOPER&nbsp;CONTROL&nbsp;PLANE"]
+    D1["Portal (Backstage / Port)"] --- D2["CLI / API"] --- D3["Templates"] --- D4["Documentation"]
+end
+
+subgraph IDP["INTEGRATION&nbsp;&&nbsp;DELIVERY&nbsp;PLANE"]
+    I1["CI/CD System"] --- I2["GitOps Operator"] --- I3["Artefact Registry"]
+end
+
+subgraph SIP["SECURITY&nbsp;&&nbsp;IDENTITY&nbsp;PLANE"]
+    S1["IAM"] --- S2["Secrets"] --- S3["Policy Enforcement"] --- S4["Sigstore"]
+end
+
+subgraph MLP["MONITORING&nbsp;&&nbsp;LOGGING&nbsp;PLANE"]
+    M1["Metrics"] --- M2["Logs"] --- M3["Traces"] --- M4["Profiles"] --- M5["Grafana"] --- M6["OTel Collector"]
+end
+
+subgraph RP["RESOURCE PLANE"]
+    R1["Kubernetes Clusters"] --- R2["Infrastructure Provisioning"] --- R3["Networking"]
+end
+
+DCP --> IDP
+IDP --> SIP
+IDP --> MLP
+SIP --> RP
+MLP --> RP

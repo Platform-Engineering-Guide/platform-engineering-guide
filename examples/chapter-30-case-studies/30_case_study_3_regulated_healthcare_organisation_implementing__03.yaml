@@ -1,0 +1,61 @@
+# .github/workflows/change-record.yml
+name: Generate Change Record
+on:
+  push:
+    branches: [main]
+
+jobs:
+  generate-change-record:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Collect change evidence
+        id: evidence
+        run: |
+          COMMIT_SHA="${{ github.sha }}"
+          PR_NUMBER=$(git log --format="%s" -1 | grep -oP '#\K[0-9]+' || echo "")
+          
+          # Get PR details including reviewer approvals
+          PR_DATA=$(gh api repos/${{ github.repository }}/pulls/${PR_NUMBER} 2>/dev/null || echo "{}")
+          REVIEWS=$(gh api repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews 2>/dev/null || echo "[]")
+          
+          # Get test results from the preceding CI run
+          RUN_ID=$(gh run list --commit ${COMMIT_SHA} --json databaseId --jq '.[0].databaseId')
+          TEST_RESULTS=$(gh run view ${RUN_ID} --json jobs --jq '.jobs[] | {name: .name, conclusion: .conclusion}')
+          
+          echo "commit=${COMMIT_SHA}" >> $GITHUB_OUTPUT
+          echo "pr_number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create immutable change record
+        run: |
+          cat > change-record.json << EOF
+          {
+            "change_id": "CHG-${{ github.run_number }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "commit_sha": "${{ steps.evidence.outputs.commit }}",
+            "repository": "${{ github.repository }}",
+            "author": "${{ github.event.pusher.name }}",
+            "pr_number": "${{ steps.evidence.outputs.pr_number }}",
+            "approvers": ${{ toJSON(steps.evidence.outputs.reviews) }},
+            "test_results": ${{ toJSON(steps.evidence.outputs.test_results) }},
+            "deployment_target": "production",
+            "change_classification": "standard",
+            "mdr_traceability": {
+              "requirement_refs": [],
+              "risk_assessment_id": "",
+              "verification_evidence": "automated-test-suite-${github_run_id}"
+            }
+          }
+          EOF
+          
+          # Store in immutable evidence bucket
+          aws s3 cp change-record.json \
+            s3://nexum-compliance-evidence/change-records/$(date +%Y/%m)/${{ github.sha }}.json \
+            --no-progress
+        env:
+          AWS_ROLE_ARN: ${{ secrets.COMPLIANCE_EVIDENCE_ROLE_ARN }}

@@ -1,0 +1,33 @@
+# Kyverno policy: enforce data classification labels on all namespaces
+# Required for DSPT compliance — all resources must be classified
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-data-classification
+  annotations:
+    policies.kyverno.io/title: Require Data Classification Labels
+    policies.kyverno.io/description: |
+      All namespaces must declare their data classification level.
+      This supports DSPT compliance requirement DSP-T7: Data Security.
+    compliance.nexum.io/framework: DSPT
+    compliance.nexum.io/control: DSP-T7
+    compliance.nexum.io/last-reviewed: "2025-11-01"
+    compliance.nexum.io/reviewer: clinical-governance@nexum.health
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: check-data-classification
+      match:
+        any:
+          - resources:
+              kinds: [Namespace]
+      validate:
+        message: >
+          Namespaces must declare data-classification label.
+          Allowed values: public, internal, confidential, restricted.
+          Contact platform-team@nexum.health for assistance.
+        pattern:
+          metadata:
+            labels:
+              data-classification: "public | internal | confidential | restricted"
+              nhs-org-code: "?*"   # NHS organisation code for data ownership

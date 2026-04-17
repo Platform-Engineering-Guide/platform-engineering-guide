@@ -1,0 +1,35 @@
+# GitHub Actions: parallel security scanning stages
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps: [ ... ]
+
+  sast:
+    runs-on: ubuntu-latest
+    # Runs in parallel with 'test' — no 'needs' dependency
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run SAST
+        uses: github/codeql-action/analyze@v3
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for secrets
+        uses: trufflesecurity/trufflehog@main
+
+  build:
+    needs: [test, sast, secret-scan]  # Only build once all validation passes
+    runs-on: ubuntu-latest
+    steps: [ ... ]
+
+  scan-image:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps: [ ... ]
+
+  sign-and-deploy:
+    needs: [scan-image]
+    runs-on: ubuntu-latest
+    steps: [ ... ]

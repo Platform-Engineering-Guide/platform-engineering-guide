@@ -1,0 +1,51 @@
+# Mimir single-binary deployment for moderate scale
+# Full microservices mode is covered in production deployment guides
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mimir
+  namespace: monitoring
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: mimir
+          image: grafana/mimir:2.12.0
+          args:
+            - -config.file=/etc/mimir/mimir.yaml
+            - -target=all           # Single binary mode
+          ports:
+            - containerPort: 9009   # HTTP
+            - containerPort: 9095   # gRPC
+          volumeMounts:
+            - name: config
+              mountPath: /etc/mimir
+            - name: data
+              mountPath: /data
+---
+# mimir.yaml configuration
+multitenancy_enabled: false    # Single-tenant for most platform deployments
+
+blocks_storage:
+  backend: s3
+  s3:
+    bucket_name: acme-mimir-blocks
+    region: eu-west-1
+  tsdb:
+    retention_period: 0      # Never expire from object storage
+
+compactor:
+  data_dir: /data/compactor
+
+ingester:
+  ring:
+    replication_factor: 3
+
+store_gateway:
+  sharding_ring:
+    replication_factor: 3
+
+limits:
+  ingestion_rate: 100000      # Samples per second per tenant
+  max_global_series_per_user: 1000000

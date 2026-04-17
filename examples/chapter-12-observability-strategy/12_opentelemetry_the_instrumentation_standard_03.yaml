@@ -1,0 +1,123 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: platform-collector
+  namespace: monitoring
+spec:
+  mode: daemonset
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      # Collect Kubernetes events as logs
+      k8s_events:
+        auth_type: serviceAccount
+      # Collect node-level metrics via kubelet
+      kubeletstats:
+        collection_interval: 30s
+        auth_type: serviceAccount
+        endpoint: "${env:K8S_NODE_NAME}:10250"
+        insecure_skip_verify: true
+        metric_groups:
+          - node
+          - pod
+          - container
+
+    processors:
+      # Add Kubernetes metadata to all telemetry
+      k8sattributes:
+        auth_type: serviceAccount
+        extract:
+          metadata:
+            - k8s.namespace.name
+            - k8s.deployment.name
+            - k8s.pod.name
+            - k8s.node.name
+            - k8s.pod.uid
+          labels:
+            - tag_name: app.label.version
+              key: app.kubernetes.io/version
+              from: pod
+          annotations:
+            - tag_name: app.annotation.owner
+              key: owner
+              from: pod
+
+      # Resource detection — add cloud provider metadata
+      resourcedetection:
+        detectors: [eks, ec2, system]
+        timeout: 5s
+
+      # Tail-based sampling — keep 100% of error traces,
+      # 10% of successful traces
+      tail_sampling:
+        decision_wait: 30s
+        expected_new_traces_per_sec: 1000
+        policies:
+          - name: errors-policy
+            type: status_code
+            status_code: {status_codes: [ERROR]}
+          - name: slow-traces-policy
+            type: latency
+            latency: {threshold_ms: 1000}
+          - name: probabilistic-policy
+            type: probabilistic
+            probabilistic: {sampling_percentage: 10}
+
+      # Batch for efficiency
+      batch:
+        timeout: 5s
+        send_batch_size: 1000
+
+      # Memory limiter — prevent OOM in the collector itself
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 512
+        spike_limit_mib: 128
+
+    exporters:
+      # Traces to Grafana Tempo
+      otlp/tempo:
+        endpoint: tempo.monitoring.svc.cluster.local:4317
+        tls:
+          insecure: true
+
+      # Metrics to Grafana Mimir (Prometheus-compatible)
+      prometheusremotewrite:
+        endpoint: http://mimir.monitoring.svc.cluster.local:9009/api/v1/push
+
+      # Logs to Grafana Loki
+      loki:
+        endpoint: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+        default_labels_enabled:
+          exporter: false
+          job: true
+        resource_to_labels:
+          k8s.namespace.name: namespace
+          k8s.deployment.name: deployment
+          k8s.pod.name: pod
+
+      # Profiles to Pyroscope
+      otlp/pyroscope:
+        endpoint: pyroscope.monitoring.svc.cluster.local:4040
+        tls:
+          insecure: true
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, k8sattributes, resourcedetection, tail_sampling, batch]
+          exporters: [otlp/tempo]
+        metrics:
+          receivers: [otlp, kubeletstats]
+          processors: [memory_limiter, k8sattributes, resourcedetection, batch]
+          exporters: [prometheusremotewrite]
+        logs:
+          receivers: [otlp, k8s_events]
+          processors: [memory_limiter, k8sattributes, resourcedetection, batch]
+          exporters: [loki]

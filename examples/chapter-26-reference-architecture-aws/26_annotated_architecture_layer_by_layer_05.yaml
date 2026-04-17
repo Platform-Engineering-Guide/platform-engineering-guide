@@ -1,0 +1,14 @@
+# Developer files this claim to request a PostgreSQL database
+# Lives in the service's infrastructure directory
+apiVersion: platform.internal/v1alpha1
+kind: PostgresDatabase
+metadata:
+  name: payments-db
+  namespace: payments-production
+spec:
+  parameters:
+    environment: production
+    instanceClass: medium
+    databaseName: payments
+  writeConnectionSecretToRef:
+    name: payments-db-credentials   # Credentials written here by Crossplane

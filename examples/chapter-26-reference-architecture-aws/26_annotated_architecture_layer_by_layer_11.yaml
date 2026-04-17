@@ -1,0 +1,29 @@
+# slo/payments-api-slos.yaml
+apiVersion: sloth.slok.dev/v1
+kind: PrometheusServiceLevel
+metadata:
+  name: payments-api
+  namespace: payments-production
+spec:
+  service: payments-api
+  slos:
+    - name: requests-availability
+      objective: 99.9
+      description: "99.9% of payment requests succeed"
+      sli:
+        events:
+          errorQuery: sum(rate(http_requests_total{service="payments-api",status=~"5.."}[{{.window}}]))
+          totalQuery: sum(rate(http_requests_total{service="payments-api"}[{{.window}}]))
+      alerting:
+        name: PaymentsAPIHighErrorRate
+        labels:
+          team: payments-engineering
+          severity: page
+        annotations:
+          summary: "Payments API error rate burning SLO budget"
+        pageAlert:
+          labels:
+            severity: critical
+        ticketAlert:
+          labels:
+            severity: warning

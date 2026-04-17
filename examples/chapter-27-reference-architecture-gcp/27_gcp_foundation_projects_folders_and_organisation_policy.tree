@@ -1,0 +1,14 @@
+GCP Organisation: acme-corp.com
+├── folders/platform
+│   ├── project: platform-shared-services      (Backstage, Artifact Registry, monitoring backends)
+│   ├── project: platform-networking            (Shared VPC host project, Cloud DNS)
+│   └── project: platform-security             (Cloud Security Command Center, audit log sink)
+├── folders/workloads
+│   ├── folders/development
+│   │   └── project: workloads-development     (dev GKE cluster, dev workloads)
+│   ├── folders/staging
+│   │   └── project: workloads-staging         (staging GKE cluster)
+│   └── folders/production
+│       └── project: workloads-production      (production GKE cluster)
+└── folders/data (if data platform is present)
+    └── project: data-platform

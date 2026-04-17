@@ -1,0 +1,35 @@
+# Config Connector: provision a Cloud SQL PostgreSQL instance
+apiVersion: sql.cnrm.cloud.google.com/v1beta1
+kind: SQLInstance
+metadata:
+  name: payments-db
+  namespace: payments-production
+  annotations:
+    cnrm.cloud.google.com/project-id: workloads-production
+spec:
+  databaseVersion: POSTGRES_16
+  region: europe-west1
+  settings:
+    tier: db-custom-2-7680          # 2 vCPU, 7.5GB RAM
+    availabilityType: REGIONAL      # Multi-zone HA for production
+    backupConfiguration:
+      enabled: true
+      pointInTimeRecoveryEnabled: true
+      startTime: "02:00"
+    ipConfiguration:
+      ipv4Enabled: false            # No public IP
+      privateNetworkRef:
+        name: platform-vpc
+        namespace: config-connector
+      requireSsl: true
+    diskAutoresize: true
+    diskType: PD_SSD
+    maintenanceWindow:
+      day: 7                        # Sunday
+      hour: 3
+      updateTrack: stable
+    databaseFlags:
+      - name: log_checkpoints
+        value: "on"
+      - name: log_connections
+        value: "on"

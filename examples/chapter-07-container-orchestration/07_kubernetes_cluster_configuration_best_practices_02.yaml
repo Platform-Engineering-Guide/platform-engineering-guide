@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: payments-service-pdb
+  namespace: payments
+spec:
+  minAvailable: 2     # Or use maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: payments-service

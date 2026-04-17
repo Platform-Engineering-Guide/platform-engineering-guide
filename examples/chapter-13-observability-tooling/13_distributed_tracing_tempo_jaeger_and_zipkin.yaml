@@ -1,0 +1,62 @@
+# Tempo configuration
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+    jaeger:           # Accept Jaeger format for legacy compatibility
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:14250
+        thrift_http:
+          endpoint: 0.0.0.0:14268
+
+ingester:
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: 720h    # 30 days
+
+storage:
+  trace:
+    backend: s3
+    s3:
+      bucket: acme-tempo-traces
+      region: eu-west-1
+    pool:
+      max_workers: 100
+      queue_depth: 10000
+
+# TraceQL metrics generator — derives metrics from trace data
+# Enables RED metrics (Rate, Error, Duration) from traces without
+# explicit application instrumentation
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+      cluster: production-eu-west-1
+  storage:
+    path: /var/tempo/generator
+    remote_write:
+      - url: http://mimir.monitoring.svc.cluster.local:9009/api/v1/push
+  traces_storage:
+    path: /var/tempo/generator/traces
+  processor:
+    service_graphs:
+      enabled: true
+      dimensions:
+        - http.method
+        - http.status_code
+    span_metrics:
+      enabled: true
+      dimensions:
+        - http.method
+        - http.status_code
+        - db.system

@@ -1,0 +1,23 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: payments-service
+  description: Handles payment processing and reconciliation
+  annotations:
+    github.com/project-slug: acme/payments-service
+    backstage.io/techdocs-ref: dir:.
+    pagerduty.com/service-id: P1234567
+  tags:
+    - payments
+    - critical
+    - java
+spec:
+  type: service
+  lifecycle: production
+  owner: payments-team
+  system: payments-platform
+  dependsOn:
+    - component:ledger-service
+    - resource:payments-postgres-db
+  providesApis:
+    - payments-api

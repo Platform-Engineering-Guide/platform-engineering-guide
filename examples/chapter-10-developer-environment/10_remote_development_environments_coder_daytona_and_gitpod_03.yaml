@@ -1,0 +1,36 @@
+# .gitpod.yml
+image:
+  file: .devcontainer/Dockerfile
+
+tasks:
+  - name: Setup Development Environment
+    init: |
+      mvn dependency:resolve
+      platform env setup --service payments-service --env dev
+    command: |
+      docker-compose up -d postgres redis
+      echo "Development environment ready"
+
+ports:
+  - port: 8080
+    onOpen: notify
+    name: Application
+    description: Main application port
+  - port: 5432
+    onOpen: ignore
+    name: PostgreSQL
+  - port: 6379
+    onOpen: ignore
+    name: Redis
+
+vscode:
+  extensions:
+    - vscjava.vscode-java-pack
+    - redhat.vscode-yaml
+
+github:
+  prebuilds:
+    master: true        # Pre-build on every commit to master
+    branches: true      # Pre-build on branches
+    pullRequests: true  # Pre-build for PRs — developer gets ready environment immediately
+    addBadge: true

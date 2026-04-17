@@ -1,0 +1,9 @@
+# Latency SLI: fraction of requests completing within 500ms
+sum(rate(http_request_duration_seconds_bucket{
+  service="payments-service",
+  le="0.5"
+}[5m]))
+/
+sum(rate(http_request_duration_seconds_count{
+  service="payments-service"
+}[5m]))

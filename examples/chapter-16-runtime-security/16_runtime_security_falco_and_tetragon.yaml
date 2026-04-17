@@ -1,0 +1,93 @@
+# falco_rules.yaml — custom rules extending the default ruleset
+
+# Detect shell spawned in a container (common indicator of compromise)
+- rule: Terminal Shell in Container
+  desc: A shell was used as the entrypoint/exec point for a container
+  condition: >
+    spawned_process
+    and container
+    and not container.image.repository in (allowed_shell_containers)
+    and proc.name in (shell_binaries)
+    and proc.pname in (container_entrypoints)
+  output: >
+    Terminal shell in container
+    (user=%user.name user_loginuid=%user.loginuid %container.info
+     shell=%proc.name parent=%proc.pname cmdline=%proc.cmdline
+     pid=%proc.pid terminal=%proc.terminal container_id=%container.id
+     image=%container.image.repository)
+  priority: WARNING
+  tags: [container, shell, mitre_execution]
+
+# Detect unexpected outbound connections from the payments service
+- rule: Unexpected Outbound Connection from Payments
+  desc: >
+    The payments service made an outbound connection to an unexpected destination.
+    Permitted: api.stripe.com:443, internal database, secrets manager.
+  condition: >
+    outbound
+    and container.image.repository contains "payments-service"
+    and not (
+      fd.sip.name in (allowed_payments_destinations)
+      or fd.rport in (53)
+    )
+  output: >
+    Unexpected outbound connection from payments service
+    (user=%user.name command=%proc.cmdline
+     connection=%fd.name container_id=%container.id
+     image=%container.image.repository)
+  priority: ERROR
+  tags: [network, payments, mitre_command_and_control]
+
+# Detect writes to sensitive paths
+- rule: Write to Sensitive Files in Container
+  desc: An attempt to write to sensitive files detected
+  condition: >
+    write_and_not_root_only
+    and container
+    and (
+      fd.name startswith /etc
+      or fd.name startswith /usr/bin
+      or fd.name startswith /usr/sbin
+      or fd.name startswith /bin
+      or fd.name startswith /sbin
+    )
+    and not falco_privileged_containers
+  output: >
+    Write to sensitive file in container
+    (user=%user.name command=%proc.cmdline file=%fd.name
+     container_id=%container.id image=%container.image.repository)
+  priority: ERROR
+  tags: [filesystem, mitre_persistence]
+
+# Detect cryptomining indicators
+- rule: Detect Crypto Mining Activity
+  desc: Detect processes that may be involved in crypto mining
+  condition: >
+    spawned_process
+    and container
+    and (
+      proc.name in (crypto_mining_binaries)
+      or proc.cmdline contains "--pool"
+      or proc.cmdline contains "stratum+"
+      or proc.cmdline contains "xmrig"
+    )
+  output: >
+    Crypto mining activity detected
+    (user=%user.name cmdline=%proc.cmdline
+     container_id=%container.id image=%container.image.repository)
+  priority: CRITICAL
+  tags: [process, cryptomining]
+
+# Lists used in rules
+- list: allowed_payments_destinations
+  items:
+    - "api.stripe.com"
+    - "hooks.stripe.com"
+    - "payments-postgres.payments.svc.cluster.local"
+    - "vault.vault.svc.cluster.local"
+
+- list: crypto_mining_binaries
+  items: [xmrig, cpuminer, cgminer, bfgminer, ethminer]
+
+- list: allowed_shell_containers
+  items: [debug-tools, busybox]

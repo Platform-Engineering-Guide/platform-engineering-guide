@@ -1,0 +1,31 @@
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata:
+  name: platform-addons
+  namespace: fleet-default
+spec:
+  repo: https://github.com/acme-corp/platform-addons
+  branch: main
+  paths:
+    - manifests/
+  targets:
+    - name: production
+      clusterSelector:
+        matchLabels:
+          environment: production
+      helm:
+        values:
+          replicaCount: 3
+          resources:
+            requests:
+              memory: 256Mi
+    - name: non-production
+      clusterSelector:
+        matchLabels:
+          environment: non-production
+      helm:
+        values:
+          replicaCount: 1
+          resources:
+            requests:
+              memory: 128Mi

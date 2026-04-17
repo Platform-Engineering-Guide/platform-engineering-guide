@@ -1,0 +1,33 @@
+platform-policies/
+├── README.md
+├── baseline/                    # Applied to all clusters, all namespaces
+│   ├── pod-security/
+│   │   ├── disallow-privileged.yaml
+│   │   ├── require-resource-limits.yaml
+│   │   ├── require-non-root.yaml
+│   │   └── require-read-only-rootfs.yaml
+│   ├── supply-chain/
+│   │   ├── require-signed-images.yaml
+│   │   └── require-image-digest.yaml
+│   └── labelling/
+│       ├── require-labels.yaml
+│       └── require-owner-annotation.yaml
+├── regulated/                   # Applied to namespaces with regulated data
+│   ├── pci-dss/
+│   │   ├── require-encrypted-storage.yaml
+│   │   ├── require-network-policy.yaml
+│   │   └── restrict-external-egress.yaml
+│   ├── hipaa/
+│   │   ├── require-audit-logging.yaml
+│   │   └── data-retention-labels.yaml
+│   └── soc2/
+│       └── require-change-approval.yaml
+├── exceptions/                  # Documented, time-limited policy exceptions
+│   ├── README.md                # Exception request and approval process
+│   └── system-workloads/
+│       └── monitoring-privileged-exception.yaml
+└── tests/                       # Policy unit tests
+    ├── baseline/
+    │   └── pod-security_test.yaml
+    └── regulated/
+        └── pci-dss_test.yaml

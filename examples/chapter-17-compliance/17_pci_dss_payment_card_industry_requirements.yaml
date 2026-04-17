@@ -1,0 +1,28 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-default-deny-networkpolicy
+  annotations:
+    compliance.acme.io/controls: "PCI-DSS-1.3"
+spec:
+  validationFailureAction: Audit    # Audit initially; Enforce after migration
+  rules:
+    - name: check-default-deny-exists
+      match:
+        any:
+          - resources:
+              kinds: [Namespace]
+              selector:
+                matchLabels:
+                  data-classification: cardholder-data
+      validate:
+        message: >
+          Namespaces handling cardholder data must have a default-deny
+          NetworkPolicy. Apply the label network-policy=default-deny and
+          use the platform's namespace bootstrapping workflow.
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.metadata.labels.\"network-policy\" }}"
+                operator: NotEquals
+                value: "default-deny"

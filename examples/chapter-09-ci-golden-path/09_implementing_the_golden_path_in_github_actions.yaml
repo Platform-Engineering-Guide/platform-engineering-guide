@@ -1,0 +1,176 @@
+# .github/workflows/platform-build.yml (in the platform team's shared repository)
+# Called by application teams' CI workflows via 'uses:'
+name: Platform CI Golden Path
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        required: true
+        type: string
+      build-command:
+        required: false
+        type: string
+        default: "mvn -B package -DskipTests"
+      test-command:
+        required: false
+        type: string
+        default: "mvn -B test"
+      dockerfile-path:
+        required: false
+        type: string
+        default: "./Dockerfile"
+      severity-threshold:
+        required: false
+        type: string
+        default: "CRITICAL,HIGH"
+    outputs:
+      image-digest:
+        description: "Published image digest"
+        value: ${{ jobs.build.outputs.image-digest }}
+    secrets:
+      AWS_ROLE_ARN:
+        required: true
+      DEPLOY_REPO_TOKEN:
+        required: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: ${{ inputs.test-command }}
+
+  sast:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: java  # Platform team configures language defaults
+      - uses: github/codeql-action/analyze@v3
+
+  build:
+    needs: [test, sast]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      image-digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-west-1
+
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ inputs.dockerfile-path }}
+          push: true
+          tags: |
+            ${{ steps.ecr-login.outputs.registry }}/${{ inputs.service-name }}:${{ github.sha }}
+            ${{ steps.ecr-login.outputs.registry }}/${{ inputs.service-name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true  # Generate and attach SBOM
+
+  scan:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      security-events: write
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-west-1
+
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Scan Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: >-
+            ${{ steps.ecr-login.outputs.registry }}/${{ inputs.service-name }}@${{ needs.build.outputs.image-digest }}
+          severity: ${{ inputs.severity-threshold }}
+          exit-code: 1
+          format: sarif
+          output: trivy-results.sarif
+
+      - name: Upload Scan Results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+  sign:
+    needs: [scan]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-west-1
+
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign Image
+        run: |
+          cosign sign --yes \
+            ${{ steps.ecr-login.outputs.registry }}/${{ inputs.service-name }}@${{ needs.build.outputs.image-digest }}
+
+  deploy:
+    needs: [sign]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Update Deployment Repository
+        uses: actions/checkout@v4
+        with:
+          repository: acme-corp/platform-deployments
+          token: ${{ secrets.DEPLOY_REPO_TOKEN }}
+          path: deployments
+
+      - name: Update Image Tag
+        working-directory: deployments
+        run: |
+          cd services/${{ inputs.service-name }}/overlays/staging
+          kustomize edit set image \
+            ${{ inputs.service-name }}=${{ env.REGISTRY }}/${{ inputs.service-name }}@${{ needs.build.outputs.image-digest }}
+          git config user.name "platform-ci[bot]"
+          git config user.email "platform-ci[bot]@acme.corp"
+          git add .
+          git commit -m "chore(${{ inputs.service-name }}): deploy ${{ github.sha }}
+
+          Source: ${{ github.repository }}@${{ github.sha }}
+          Workflow: ${{ github.run_id }}
+          Deployed by: platform-build golden path"
+          git push

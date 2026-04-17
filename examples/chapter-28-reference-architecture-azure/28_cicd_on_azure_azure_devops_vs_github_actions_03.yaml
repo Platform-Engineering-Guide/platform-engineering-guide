@@ -1,0 +1,19 @@
+# Actions Runner Controller — RunnerDeployment for AKS
+apiVersion: actions.summerwindnet/v1alpha1
+kind: RunnerDeployment
+metadata:
+  name: platform-runners
+  namespace: actions-runner-system
+spec:
+  replicas: 3
+  template:
+    spec:
+      repository: acme-corp/platform
+      image: summerwind/actions-runner:latest
+      resources:
+        limits:
+          cpu: "2"
+          memory: "4Gi"
+        requests:
+          cpu: "500m"
+          memory: "1Gi"

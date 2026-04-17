@@ -1,0 +1,38 @@
+# alloy/config.alloy — simplified log collection configuration
+discovery.kubernetes "pods" {
+  role = "pod"
+}
+
+discovery.relabel "pod_logs" {
+  targets = discovery.kubernetes.pods.targets
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    target_label  = "namespace"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    target_label  = "pod"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_team"]
+    target_label  = "team"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_cost__centre"]
+    target_label  = "cost_centre"
+  }
+}
+
+loki.source.kubernetes "pod_logs" {
+  targets    = discovery.relabel.pod_logs.output
+  forward_to = [loki.write.central.receiver]
+}
+
+loki.write "central" {
+  endpoint {
+    url = "https://loki.platform.internal/loki/api/v1/push"
+    headers = {
+      "X-Scope-OrgID" = "workloads",
+    }
+  }
+}

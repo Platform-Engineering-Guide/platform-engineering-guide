@@ -1,0 +1,11 @@
+# Repository: acme/payments-service-deploy
+payments-service-deploy/
+├── base/
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   ├── hpa.yaml
+│   └── kustomization.yaml
+└── overlays/
+    ├── dev/
+    ├── staging/
+    └── production/

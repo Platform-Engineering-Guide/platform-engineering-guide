@@ -1,0 +1,15 @@
+# catalog-info.yaml
+metadata:
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+
+# mkdocs.yml
+site_name: Payments Service
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - API Reference: api.md
+  - Operations: operations.md
+  - Runbooks:
+    - Incident Response: runbooks/incident-response.md
+    - Database Failover: runbooks/db-failover.md

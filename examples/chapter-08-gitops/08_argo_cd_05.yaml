@@ -1,0 +1,35 @@
+# ConfigMap for Argo CD Notifications
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+data:
+  # Slack notification template
+  template.app-deployed: |
+    message: |
+      Application {{.app.metadata.name}} has been deployed.
+      Revision: {{.app.status.sync.revision}}
+      Environment: {{.app.spec.destination.namespace}}
+    slack:
+      attachments: |
+        [{
+          "color": "good",
+          "fields": [{
+            "title": "Sync Status",
+            "value": "{{.app.status.sync.status}}",
+            "short": true
+          }, {
+            "title": "Health",
+            "value": "{{.app.status.health.status}}",
+            "short": true
+          }]
+        }]
+
+  # Trigger: notify on successful sync
+  trigger.on-deployed: |
+    - description: Application is synced and healthy
+      send:
+        - app-deployed
+      when: app.status.operationState.phase in ['Succeeded'] and
+            app.status.health.status == 'Healthy'
