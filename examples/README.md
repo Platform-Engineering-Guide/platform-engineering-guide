@@ -6,17 +6,37 @@ by Jordan Dinsdale.
 
 ## Structure
 
-Examples are organised by chapter. Each directory contains a README explaining the context, prerequisites, and how to run or apply the examples.
+Examples are organised by chapter.
 
 ```text
 examples/
-├── chapter-06-iac/          # Terraform, OpenTofu, Pulumi, Crossplane
-├── chapter-08-gitops/       # Argo CD, Flux CD configurations
-├── chapter-11-secrets/      # Vault, OpenBao, External Secrets Operator
-├── chapter-14-slos/         # Sloth, Pyrra, Alertmanager rules
-├── chapter-15-supply-chain/ # Sigstore, SLSA, SBOM generation
-├── chapter-16-runtime/      # Kyverno, Falco, Tetragon policies
-└── chapter-20-ai-platform/  # AI governance, .cursorrules, pre-commit hooks
+├── chapter-04-idp
+├── chapter-05-dev-portals
+├── chapter-06-iac                          # Terraform, OpenTofu, Pulumi, Crossplane
+├── chapter-07-container-orchestration
+├── chapter-08-gitops                       # Argo CD, Flux CD configurations
+├── chapter-09-ci-golden-path
+├── chapter-10-developer-environment
+├── chapter-11-secrets                      # Vault, OpenBao, External Secrets Operator
+├── chapter-12-observability-strategy
+├── chapter-13-observability-tooling
+├── chapter-14-slos                         # Sloth, Pyrra, Alertmanager rules
+├── chapter-15-supply-chain                 # Sigstore, SLSA, SBOM generation
+├── chapter-16-runtime-security             # Kyverno, Falco, Tetragon policies
+├── chapter-17-compliance
+├── chapter-18-finops
+├── chapter-19-roi
+├── chapter-20-ai-platform                  # AI governance, .cursorrules, pre-commit hooks
+├── chapter-21-aiml
+├── chapter-22-agenticai
+├── chapter-23-team-topologies
+├── chapter-24-adoption-devex
+├── chapter-25-roadmaps-maturity
+├── chapter-26-reference-architecture-aws
+├── chapter-27-reference-architecture-gcp
+├── chapter-28-reference-architecture-azure
+├── chapter-29-reference-architecture-multi-cloud-hybrid
+├── chapter-30-case-studies
 ```
 
 ## Important Notes
