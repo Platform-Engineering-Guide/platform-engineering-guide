@@ -1,0 +1,37 @@
+flowchart TD
+    subgraph Context["The Problem"]
+        LEGACY["Legacy Platform Component\n(e.g. Jenkins + manual Helm deploys\nor bespoke bash-based CD pipeline)\nCannot be turned off overnight\nTeams depend on it\nRewrites fail — too much at once"]
+    end
+
+    subgraph Phase1["Phase 1 — Facade and Intercept (Weeks 1–4)"]
+        FACADE["Install new platform alongside\n(Argo CD deployed but not routing traffic)\nFacade: new service catalogue entry\npoints to old system\nNo team disruption yet"]
+        IDENTIFY["Identify candidate services:\n• Low criticality\n• No exotic pipeline requirements\n• Willing team (volunteer-first)"]
+    end
+
+    subgraph Phase2["Phase 2 — Migrate Incrementally (Weeks 4–16)"]
+        PILOT["Pilot migration:\n1 willing team, 1 service\nMigrate to new golden path\nOld pipeline kept as fallback\nDocument gaps found"]
+        EARLY_ADOPTERS["Early adopter wave:\n5–10 services migrated\nPlatform team supports closely\nGolden path refined from feedback"]
+        CATALOGUE_UPDATE["Service catalogue updated:\nNew services → new platform only\nOld services → migration path documented\nNo forcing — pull not push"]
+    end
+
+    subgraph Phase3["Phase 3 — Accelerate (Weeks 16–32)"]
+        SELF_SERVE["Self-serve migration guide published\nTeams migrate independently\nPlatform team available but not required\nMetric: % services on new platform"]
+        INCENTIVE["Incentives (not mandates):\nNew features only on new platform\nOld platform maintenance-only\nAutomated migration tooling\n(migrate.sh script)"]
+        CUTOVER["Legacy cutover planning:\n>80% services migrated\nSchedule sunset date (90d notice)\nRemaining teams given support"]
+    end
+
+    subgraph Phase4["Phase 4 — Sunset (Week 32+)"]
+        SUNSET["Legacy decommission:\nFinal services migrated\nOld infrastructure torn down\nCost saving realised\nPostmortem: what would we do differently"]
+        CELEBRATE["Announce completion:\nplatform newsletter\nAll-hands demo\nMetrics: lead time, deployment freq before/after"]
+    end
+
+    Context --> Phase1
+    Phase1 --> Phase2
+    Phase2 --> Phase3
+    Phase3 --> Phase4
+
+    style Context fill:#E74C3C,color:#fff
+    style Phase1 fill:#E67E22,color:#fff
+    style Phase2 fill:#F39C12,color:#000
+    style Phase3 fill:#27AE60,color:#fff
+    style Phase4 fill:#2980B9,color:#fff

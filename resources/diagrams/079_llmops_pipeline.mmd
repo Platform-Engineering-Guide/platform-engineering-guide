@@ -1,0 +1,62 @@
+flowchart TD
+    subgraph PromptManagement["Prompt Management"]
+        direction TB
+        PROMPT_REPO["Git repository:\nprompts/\n├── system-prompts/\n│   ├── customer-support-v3.md\n│   └── code-reviewer-v1.md\n└── few-shot-examples/\n    └── payment-intents.json"]
+        PROMPT_VERSION["Semantic versioning\ncustomer-support:v3.1.0\nChangelog required\nfor every version"]
+        PROMPT_REVIEW["PR review process\nPrompt changes reviewed\nby: ML engineer +\ndomain expert\nNo unreviewed prompts\nin production"]
+    end
+
+    subgraph EvalPipeline["Evaluation Pipeline (CI — runs on every prompt PR)"]
+        direction TB
+        GOLDEN_SET["Golden dataset\n(100–500 labelled examples\nper use case)\nStored in Git + DVC"]
+        EVAL_RUN["Evaluation run\n(pytest + LLM judge\nor human eval for\nsubtle changes)"]
+        METRICS_EVAL["Metrics computed:\n• Task success rate\n• Factual accuracy\n• Tone / style compliance\n• Latency (P50, P99)\n• Cost per call"]
+        REGRESSION["Regression gate:\nNew prompt must not\ndegrade golden set\nby > 2% on any metric"]
+        EVAL_REPORT["Eval report\npublished to PR\nMust pass before merge"]
+    end
+
+    subgraph GuardrailLayer["Guardrails (Runtime)"]
+        direction LR
+
+        subgraph InputGuards["Input Guards (before LLM)"]
+            PII_IN["PII detection\n(names, emails, cards)\nRedact before sending\nto model"]
+            PROMPT_INJ["Prompt injection\ndetection\n(classifier-based)"]
+            CONTENT_CLASS["Content classification\n(off-topic, harmful\nrequest detection)"]
+            RATE_LIMIT["Rate limiting\nper user / per org\n(token budget)"]
+        end
+
+        subgraph OutputGuards["Output Guards (after LLM)"]
+            PII_OUT["PII scan on output\n(model may generate\nsynthetica PII)"]
+            HALLUC["Hallucination check\n(grounding verification\nvs retrieval context)"]
+            TOXICITY["Toxicity filter\n(safety classifier)"]
+            FACT_CHECK["Fact grounding\n(RAG: verify claims\nagainst source docs)"]
+        end
+    end
+
+    subgraph Observability["LLM Observability"]
+        TRACE_LLM["Distributed tracing\n(OTel spans per LLM call:\ntrace_id, model, tokens_in,\ntokens_out, latency, cost)"]
+        COST_TRACK["Cost tracking\n($ per call, per user,\nper feature — daily budget\nalert at 80% threshold)"]
+        QUALITY_MON["Quality monitoring\n(human feedback loop:\nthumbsup/down → labelled\nfor eval dataset)"]
+        DRIFT_MON["Drift detection\n(task success rate\nmonitored weekly —\nalert if drops > 5%)"]
+    end
+
+    subgraph ModelVersioning["Model Version Management"]
+        MODEL_REG["Model registry\n(MLflow or OCI)\nBase model + LoRA\nadapter versions"]
+        AB_TEST["A/B testing\n(shadow mode:\nnew model scores\nrequests alongside\ncurrent — no user impact)"]
+        PROMOTE["Promotion gate\n(shadow eval must\nmatch or exceed\ncurrent model metrics)"]
+    end
+
+    PromptManagement --> EvalPipeline
+    EVAL_REPORT -->|"merge approved"| GuardrailLayer
+    GuardrailLayer --> Observability
+    ModelVersioning --> AB_TEST
+    AB_TEST --> PROMOTE
+    PROMOTE -->|"approved"| GuardrailLayer
+    QUALITY_MON -->|"feedback enriches"| GOLDEN_SET
+
+    style PromptManagement fill:#2C3E50,color:#fff
+    style EvalPipeline fill:#2980B9,color:#fff
+    style InputGuards fill:#E74C3C,color:#fff
+    style OutputGuards fill:#E67E22,color:#fff
+    style Observability fill:#27AE60,color:#fff
+    style ModelVersioning fill:#8E44AD,color:#fff

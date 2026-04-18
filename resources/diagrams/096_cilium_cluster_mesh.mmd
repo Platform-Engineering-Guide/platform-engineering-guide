@@ -1,0 +1,35 @@
+flowchart TD
+    subgraph ClusterA["Cluster A — Production Primary (AWS eu-west-1)"]
+        CA_CILIUM["Cilium (cluster-id: 1)\ncilium-clustermesh-apiserver\nExposes local services\nvia ClusterMesh API"]
+        CA_SVC["Service: payments-api\nClusterIP: 10.0.1.100\nAnnotation:\nservice.cilium.io/global: 'true'"]
+        CA_PODS["payments-api pods\n(3 replicas)"]
+    end
+
+    subgraph ClusterB["Cluster B — Production DR (AWS eu-central-1)"]
+        CB_CILIUM["Cilium (cluster-id: 2)\nSame ClusterMesh API\nconfiguration"]
+        CB_SVC["Service: payments-api\nClusterIP: 10.1.1.100\nAnnotation:\nservice.cilium.io/global: 'true'\nservice.cilium.io/shared: 'true'"]
+        CB_PODS["payments-api pods\n(2 replicas — standby)"]
+    end
+
+    subgraph ClusterMeshControl["Cluster Mesh Control Plane"]
+        MESH_API["ClusterMesh API servers\nmutually authenticated via\nTLS certificates\nExchange service endpoints"]
+        ETCD_SYNC["etcd synchronisation\nService endpoints shared\nacross clusters\nHealthy endpoints only"]
+    end
+
+    subgraph GlobalService["Global Service Behaviour"]
+        GLOBAL_LB["Global load balancing:\nclient in Cluster A → payments-api\nCilium resolves to:\n• Local pods (preferred)\n• Remote pods (if local unavailable\n  or service.cilium.io/shared: 'true')\nNo external LB needed\nfor cross-cluster failover"]
+        AFFINITY["Topology-aware routing:\nLocal cluster preferred\nRemote cluster: failover only\n(unless load-balancing-mode: shared)"]
+    end
+
+    CA_CILIUM <-->|"mTLS tunnel\n(WireGuard or IPSec)"| CB_CILIUM
+    CA_CILIUM --> MESH_API
+    CB_CILIUM --> MESH_API
+    MESH_API --> ETCD_SYNC
+    CA_SVC --> GLOBAL_LB
+    CB_SVC --> GLOBAL_LB
+    GLOBAL_LB --> AFFINITY
+
+    style ClusterA fill:#2980B9,color:#fff
+    style ClusterB fill:#8E44AD,color:#fff
+    style ClusterMeshControl fill:#2C3E50,color:#fff
+    style GlobalService fill:#27AE60,color:#fff

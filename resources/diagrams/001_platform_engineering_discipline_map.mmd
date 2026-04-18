@@ -1,0 +1,134 @@
+graph TB
+    subgraph Foundations["Shared Foundations"]
+        LINUX["Linux &\nNetworking"]
+        IaC_BASE["Infrastructure\nas Code"]
+        CLOUD["Cloud\nPrimitives"]
+        GIT["Version Control\n& CI/CD basics"]
+    end
+
+    subgraph DevOps["DevOps"]
+        direction TB
+        DEVOPS_DEF["Culture &\ncollaboration practice"]
+        DEVOPS_CICD["CI/CD pipelines"]
+        DEVOPS_AUTO["Release\nautomation"]
+        DEVOPS_NOTE["⚠ A philosophy,\nnot a job title"]
+    end
+
+    subgraph SRE["Site Reliability Engineering"]
+        direction TB
+        SRE_SLO["SLOs, SLAs,\nerror budgets"]
+        SRE_OBS["Observability\n& alerting"]
+        SRE_TOIL["Toil reduction\n& automation"]
+        SRE_NOTE["Focus: reliability\nof running systems"]
+    end
+
+    subgraph InfraEng["Infrastructure Engineering"]
+        direction TB
+        INFRA_PROV["Provisioning &\ncloud plumbing"]
+        INFRA_NET["Networking,\nstorage, compute"]
+        INFRA_NOTE["Focus: raw\ninfrastructure layer"]
+    end
+
+    subgraph PE["Platform Engineering"]
+        direction TB
+        PE_IDP["Internal Developer\nPlatform (IDP)"]
+        PE_GOLDEN["Golden paths &\nself-service"]
+        PE_PROD["Platform as\na product"]
+        PE_DX["Developer\nexperience (DX)"]
+        PE_NOTE["Focus: reducing\ncognitive load\non delivery teams"]
+    end
+
+    subgraph Outcome["What Each Discipline Optimises For"]
+        OUT_DEVOPS["DevOps → Collaboration\nand deployment frequency"]
+        OUT_SRE["SRE → Reliability\nand incident response"]
+        OUT_INFRA["Infra Eng → Stable,\nsecure cloud layer"]
+        OUT_PE["Platform Eng → Developer\nproductivity and autonomy"]
+    end
+
+    Foundations --> DevOps
+    Foundations --> SRE
+    Foundations --> InfraEng
+    Foundations --> PE
+    InfraEng -->|"provides the substrate"| PE
+    SRE -->|"informs SLO design\nand on-call models"| PE
+    DevOps -->|"culture and\npractice upstream"| PE
+    PE --> OUT_PE
+    SRE --> OUT_SRE
+    DevOps --> OUT_DEVOPS
+    InfraEng --> OUT_INFRA
+
+    style PE fill:#2980B9,color:#fff
+    style PE_IDP fill:#1A5276,color:#fff
+    style PE_PROD fill:#1A5276,color:#fff
+    style Outcome fill:#f8f9fa,color:#000
+    style PE_NOTE fill:#AED6F1,color:#000
+    style SRE_NOTE fill:#A9DFBF,color:#000
+    style DEVOPS_NOTE fill:#FAD7A0,color:#000
+    style INFRA_NOTE fill:#D7BDE2,color:#000
+
+    subgraph Foundations["Shared Foundations"]
+        LINUX["Linux &\nNetworking"]
+        IaC_BASE["Infrastructure\nas Code"]
+        CLOUD["Cloud\nPrimitives"]
+        GIT["Version Control\n& CI/CD basics"]
+    end
+
+    subgraph DevOps["DevOps"]
+        direction TB
+        DEVOPS_DEF["Culture &\ncollaboration practice"]
+        DEVOPS_CICD["CI/CD pipelines"]
+        DEVOPS_AUTO["Release\nautomation"]
+        DEVOPS_NOTE["⚠ A philosophy,\nnot a job title"]
+    end
+
+    subgraph SRE["Site Reliability Engineering"]
+        direction TB
+        SRE_SLO["SLOs, SLAs,\nerror budgets"]
+        SRE_OBS["Observability\n& alerting"]
+        SRE_TOIL["Toil reduction\n& automation"]
+        SRE_NOTE["Focus: reliability\nof running systems"]
+    end
+
+    subgraph InfraEng["Infrastructure Engineering"]
+        direction TB
+        INFRA_PROV["Provisioning &\ncloud plumbing"]
+        INFRA_NET["Networking,\nstorage, compute"]
+        INFRA_NOTE["Focus: raw\ninfrastructure layer"]
+    end
+
+    subgraph PE["Platform Engineering"]
+        direction TB
+        PE_IDP["Internal Developer\nPlatform (IDP)"]
+        PE_GOLDEN["Golden paths &\nself-service"]
+        PE_PROD["Platform as\na product"]
+        PE_DX["Developer\nexperience (DX)"]
+        PE_NOTE["Focus: reducing\ncognitive load\non delivery teams"]
+    end
+
+    subgraph Outcome["What Each Discipline Optimises For"]
+        OUT_DEVOPS["DevOps → Collaboration\nand deployment frequency"]
+        OUT_SRE["SRE → Reliability\nand incident response"]
+        OUT_INFRA["Infra Eng → Stable,\nsecure cloud layer"]
+        OUT_PE["Platform Eng → Developer\nproductivity and autonomy"]
+    end
+
+    Foundations --> DevOps
+    Foundations --> SRE
+    Foundations --> InfraEng
+    Foundations --> PE
+    InfraEng -->|"provides the substrate"| PE
+    SRE -->|"informs SLO design\nand on-call models"| PE
+    DevOps -->|"culture and\npractice upstream"| PE
+    PE --> OUT_PE
+    SRE --> OUT_SRE
+    DevOps --> OUT_DEVOPS
+    InfraEng --> OUT_INFRA
+
+    style PE fill:#2980B9,color:#fff
+    style PE_IDP fill:#1A5276,color:#fff
+    style PE_PROD fill:#1A5276,color:#fff
+    style Outcome fill:#f8f9fa,color:#000
+    style PE_NOTE fill:#AED6F1,color:#000
+    style SRE_NOTE fill:#A9DFBF,color:#000
+    style DEVOPS_NOTE fill:#FAD7A0,color:#000
+    style INFRA_NOTE fill:#D7BDE2,color:#000

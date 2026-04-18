@@ -1,0 +1,30 @@
+flowchart TD
+    START(["Implement cost\nvisibility"]) --> Q1{"Finance and\nengineering leadership\naligned on cost ownership?"}
+
+    Q1 -->|"No — cost is\nplatform team's problem"| SHOWBACK_ONLY["Start with Showback\n────────────\nShare cost dashboards\nwith teams\nNo actual budget\ntransfer\nBuild awareness first"]
+
+    Q1 -->|"Yes — teams own\ntheir cloud cost"| Q2{"Teams have\nindividual budgets\nthey control?"}
+
+    Q2 -->|"No — single shared\nengineering budget"| SHOWBACK_BUDGET["Showback with\nBudget Alerts\n────────────\nTeams see their cost\nAlerts fire over threshold\nNo P&L transfer\nBut real accountability"]
+
+    Q2 -->|"Yes — teams have\nown cost centre"| Q3{"Platform team\ncan calculate\ncosts accurately?"}
+
+    Q3 -->|"Not yet —\nlabels incomplete\nor data unreliable"| FIX_LABELS["Fix attribution first:\n• Enforce namespace labels\n• Complete CUR integration\n• Validate with finance\nThen revisit chargeback"]
+
+    Q3 -->|"Yes — data\nis trustworthy"| CHARGEBACK["Implement Chargeback\n────────────\nActual cost transfer\nbetween cost centres\nTeams billed for\ncloud resource usage\nvia internal billing"]
+
+    SHOWBACK_ONLY --> REVIEW_3M["Review in 3 months:\nHas awareness\ndriven behaviour change?"]
+    SHOWBACK_BUDGET --> REVIEW_3M
+    REVIEW_3M --> UPGRADE{Behaviour\nchanging?}
+    UPGRADE -->|"Yes — teams\noptimising"| HEALTHY(["✅ Showback is sufficient\nMaintain and refine"])
+    UPGRADE -->|"No — teams\nnot engaged"| CHARGEBACK
+
+    FIX_LABELS --> Q3
+
+    CHARGEBACK --> CHARGEBACK_IMPL["Chargeback Implementation:\n1. Agree cost allocation model\n2. Finance confirms mechanism\n3. Pilot one team for 1 quarter\n4. Roll out with 30d notice"]
+
+    style SHOWBACK_ONLY fill:#27AE60,color:#fff
+    style SHOWBACK_BUDGET fill:#27AE60,color:#fff
+    style CHARGEBACK fill:#E67E22,color:#fff
+    style FIX_LABELS fill:#E74C3C,color:#fff
+    style HEALTHY fill:#27AE60,color:#fff

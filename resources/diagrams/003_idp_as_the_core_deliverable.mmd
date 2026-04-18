@@ -1,0 +1,56 @@
+flowchart TD
+    subgraph Inputs["Platform Team Inputs"]
+        direction LR
+        CLOUD_INP["Cloud Provider APIs\n(AWS / GCP / Azure)"]
+        OSS["Open Source Tools\n(Argo CD, Backstage,\nKyverno, OTel...)"]
+        SEC_REQS["Security &\nCompliance Requirements"]
+        ORG_STDS["Organisational\nStandards & Policies"]
+        TEAM_FB["Developer\nFeedback & Pain Points"]
+    end
+
+    subgraph IDP["Internal Developer Platform"]
+        direction TB
+        subgraph SelfService["Self-Service Capabilities"]
+            PORTAL["Developer Portal\n(catalogue, templates, docs)"]
+            INFRA_SS["Self-Service\nInfrastructure"]
+            ENV_SS["Environment\nProvisioning"]
+        end
+        subgraph GoldenPaths["Golden Paths"]
+            PIPE["Standardised\nCI/CD Pipelines"]
+            DEPLOY["Deployment\nPatterns"]
+            OBS_GP["Observability\nOut of the Box"]
+        end
+        subgraph Guardrails["Guardrails (not gates)"]
+            POLICY["Policy Enforcement\n(Kyverno / OPA)"]
+            SEC_SCAN["Security Scanning\nin the Pipeline"]
+            COST_VIS["Cost Visibility\nby Default"]
+        end
+    end
+
+    subgraph Outputs["What Developers Get"]
+        direction LR
+        FAST["Faster time\nto production"]
+        SAFE["Safer deployments\nby default"]
+        LOW_CL["Lower cognitive\nload"]
+        SELF_SVC["True self-service\nwithout tickets"]
+        OBSV["Observable\nservices from day one"]
+    end
+
+    CLOUD_INP --> IDP
+    OSS --> IDP
+    SEC_REQS --> IDP
+    ORG_STDS --> IDP
+    TEAM_FB --> IDP
+
+    IDP --> FAST
+    IDP --> SAFE
+    IDP --> LOW_CL
+    IDP --> SELF_SVC
+    IDP --> OBSV
+
+    style IDP fill:#1A5276,color:#fff
+    style SelfService fill:#2980B9,color:#fff
+    style GoldenPaths fill:#27AE60,color:#fff
+    style Guardrails fill:#E67E22,color:#fff
+    style Inputs fill:#f0f0f0,color:#000
+    style Outputs fill:#f0f0f0,color:#000

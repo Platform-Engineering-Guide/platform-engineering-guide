@@ -1,0 +1,43 @@
+sequenceDiagram
+    participant PAGE as PagerDuty Alert
+    participant ENG as On-Call Engineer
+    participant AI as AI Assistant<br/>(Claude + MCP)
+    participant K8S_MCP as Kubernetes<br/>MCP Server
+    participant OBS_MCP as Observability<br/>MCP Server
+    participant RUNBOOK as Runbook Store
+
+    PAGE->>ENG: P1 alert: payments error rate 8%\nLink to Grafana dashboard
+
+    ENG->>AI: "payments-api error rate spiking.\nHelp me triage."
+
+    AI->>K8S_MCP: get_pod_status(namespace="payments")
+    K8S_MCP-->>AI: 3/5 pods Running, 2 in CrashLoopBackOff\nRestarts: 14 in last 10 min
+
+    AI->>K8S_MCP: get_pod_logs(pod="payments-api-7d9f-x", previous=true)
+    K8S_MCP-->>AI: "OOMKilled — exit code 137\nJava heap space"
+
+    AI->>OBS_MCP: query_metric(expr="container_memory_working_set_bytes{pod=~'payments-api.*'}", range="30m")
+    OBS_MCP-->>AI: Memory usage: 487MB peak\nLimit: 512MB\nBreach occurred at 14:23 UTC
+
+    AI->>K8S_MCP: get_recent_events(namespace="payments", since="1h")
+    K8S_MCP-->>AI: Deployment at 14:18 UTC\nImage: payments-api:v1.4.2
+
+    AI->>RUNBOOK: search_runbook(keywords=["OOMKill", "payments"])
+    RUNBOOK-->>AI: RB-004 — OOMKill Triage\nRecommended: increase memory limit or rollback
+
+    AI-->>ENG: "Root cause identified:\n\n1. Deployment at 14:18 UTC (v1.4.2)\n2. Memory OOMKill — pods hitting 512MB limit\n3. Previous version (v1.4.1) was stable\n\nOptions:\n• Rollback to v1.4.1 (fastest — RB-002)\n• Increase memory limit to 768MB (buys time)\n\nRecommendation: Rollback first, investigate\nmemory regression in v1.4.2 after incident.\n\nShould I show you the rollback commands?"
+
+    ENG->>AI: "Yes — show rollback commands"
+
+    AI-->>ENG: "Rollback commands (do not run automatically):\n\n```\nargocd app history payments-api\nargocd app rollback payments-api <revision>\n```\n\nVerify with:\nkubectl get pods -n payments -w\n\nI cannot execute these — you must run them.\nConfirm when complete and I'll check pod health."
+
+    Note over ENG,AI: Engineer runs rollback manually
+
+    ENG->>AI: "Rollback done"
+    AI->>K8S_MCP: get_pod_status(namespace="payments")
+    K8S_MCP-->>AI: 5/5 pods Running\nNo restarts in 3 minutes
+
+    AI->>OBS_MCP: query_metric(expr="rate(http_requests_total{service='payments',status=~'5..'}[5m])")
+    OBS_MCP-->>AI: Error rate: 0.2% — nominal
+
+    AI-->>ENG: "Recovery confirmed:\n• All 5 pods Running\n• Error rate back to 0.2%\n• Memory stable at 340MB\n\nNext steps:\n1. Close incident in PagerDuty\n2. File postmortem ticket\n3. Investigate heap regression in v1.4.2\n   before re-deploying"

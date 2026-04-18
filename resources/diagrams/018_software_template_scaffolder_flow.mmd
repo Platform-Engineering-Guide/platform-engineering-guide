@@ -1,0 +1,22 @@
+sequenceDiagram
+    participant DEV as Developer
+    participant PORTAL as Backstage Portal\n(the front door)
+    participant TEMPLATE as Software Template\n(platform-curated)
+    participant OUTCOME as What the Developer Gets
+
+    Note over DEV,OUTCOME: The developer experience — not the implementation
+
+    DEV->>PORTAL: "I need to create a new service"
+    Note over DEV,PORTAL: Before platform: open Jira, wait days,\nreceive inconsistent setup, configure CI manually,\ncopy-paste Dockerfile, hope it works.
+
+    PORTAL->>DEV: Show template catalogue\n• Golden Path API Service\n• Golden Path Async Worker\n• Golden Path ML Inference\n• Data Pipeline\n• Internal Library
+
+    DEV->>PORTAL: Select "Golden Path API Service"\nFill 5 fields:\n• Service name\n• Owning team\n• Language (Go / Node / Python)\n• Needs database? (yes/no)\n• Needs queue? (yes/no)
+
+    Note over PORTAL,TEMPLATE: Developer does NOT configure:\n• CI/CD pipeline (pre-built)\n• Docker setup (pre-built)\n• Helm chart (pre-built)\n• Observability (automatic)\n• Security scanning (automatic)\n• Image signing (automatic)\n• Network policy (automatic)\n• Resource limits (platform defaults)
+
+    PORTAL->>TEMPLATE: Execute scaffolder actions\n(developer does not see this)
+
+    TEMPLATE->>OUTCOME: Deliver in < 2 minutes:\n\n✅ Git repository\n   (with CI/CD, Dockerfile, README)\n✅ Helm chart\n   (golden path — not bespoke)\n✅ Service registered in catalogue\n   (with owner, links, docs scaffold)\n✅ CI pipeline live\n   (lint, test, scan, sign, push)\n✅ Deployment to dev environment\n   (via Argo CD — automatic)\n✅ Grafana dashboard scaffold\n   (golden signals pre-wired)\n✅ Observability configured\n   (OTel annotations in place)\n✅ Database provisioned\n   (if requested — Crossplane claim)\n✅ Secrets configured\n   (ESO ExternalSecret created)\n✅ TechDocs scaffold\n   (docs-as-code structure ready)\n✅ On-call runbook template\n   (linked from catalogue entry)
+
+    OUTCOME->>DEV: First working deployment\nin < 30 minutes from form submission\n\nDeveloper's first task:\nwrite business logic\nnot configure infrastructure

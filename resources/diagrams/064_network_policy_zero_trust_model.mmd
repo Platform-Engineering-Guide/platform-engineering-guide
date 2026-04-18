@@ -1,0 +1,43 @@
+flowchart TD
+    subgraph DefaultDeny["Default Deny (applied to every managed namespace via Kyverno generate)"]
+        DD["NetworkPolicy: default-deny-all\npodSelector: {} (all pods)\npolicyTypes: [Ingress, Egress]\nEffect: no traffic in or out\nunless explicitly allowed"]
+    end
+
+    subgraph AllowPolicies["Explicit Allow Policies (per service)"]
+        direction TB
+
+        subgraph PaymentsNS["namespace: payments"]
+            P_ALLOW_INGRESS["NetworkPolicy: allow-payments-ingress\nAllow ingress FROM:\n- namespaceSelector: name=api-gateway\n  podSelector: app=api-gateway\nPort: 8080"]
+            P_ALLOW_EGRESS_DB["NetworkPolicy: allow-payments-db-egress\nAllow egress TO:\n- namespaceSelector: name=payments\n  podSelector: app=postgres\nPort: 5432"]
+            P_ALLOW_EGRESS_DNS["NetworkPolicy: allow-dns-egress\nAllow egress TO:\n- kube-dns in kube-system\nPort: 53 UDP/TCP"]
+            P_ALLOW_EGRESS_ESO["NetworkPolicy: allow-external-secrets\nAllow egress TO:\n- external-secrets namespace\nPort: 443"]
+        end
+
+        subgraph GatewayNS["namespace: api-gateway"]
+            G_ALLOW_INGRESS["NetworkPolicy: allow-internet-ingress\nAllow ingress FROM:\n- ingress-nginx namespace\nPort: 8080"]
+            G_ALLOW_EGRESS["NetworkPolicy: allow-backend-egress\nAllow egress TO:\n- namespace: payments\n- namespace: orders\n- namespace: inventory\nPort: 8080"]
+        end
+    end
+
+    subgraph CiliumLayer["Cilium — L7 Network Policy (additional layer)"]
+        CILIUM_L7["CiliumNetworkPolicy: allow-payments-http\nExtends Kubernetes NetworkPolicy with:\n- HTTP method filtering (GET, POST only)\n- URL path filtering (/api/v1/payments/*)\n- Rate limiting per source\n- TLS SNI verification"]
+    end
+
+    subgraph TrafficFlow["Traffic Flow Example"]
+        INTERNET["Internet\nHTTPS"] -->|"✅ Allowed by\ningress-nginx policy"| NGINX["ingress-nginx\n(ingress-nginx ns)"]
+        NGINX -->|"✅ Allowed by\napi-gateway ingress policy"| GATEWAY["api-gateway pod\n(api-gateway ns)"]
+        GATEWAY -->|"✅ Allowed by\npayments ingress policy"| PAYMENTS["payments-api pod\n(payments ns)"]
+        PAYMENTS -->|"✅ Allowed by\ndb egress policy"| DB["postgres pod\n(payments ns)"]
+        FRAUD_SVC["fraud-detection\n(fraud ns)"] -->|"❌ Denied —\nno policy allows\nfraud → payments\nwithout explicit allow"| PAYMENTS
+    end
+
+    DefaultDeny -.->|"applied to all\nmanaged namespaces"| PaymentsNS
+    DefaultDeny -.->|"applied to all\nmanaged namespaces"| GatewayNS
+    AllowPolicies -.->|"layer 3/4 allow"| TrafficFlow
+    CiliumLayer -.->|"layer 7 allow\n(additional check)"| TrafficFlow
+
+    style DefaultDeny fill:#E74C3C,color:#fff
+    style AllowPolicies fill:#27AE60,color:#fff
+    style CiliumLayer fill:#2980B9,color:#fff
+    style FRAUD_SVC fill:#E74C3C,color:#fff
+    style PAYMENTS fill:#27AE60,color:#fff

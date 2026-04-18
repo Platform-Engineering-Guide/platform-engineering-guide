@@ -1,0 +1,74 @@
+flowchart TD
+    subgraph HostCluster["Host Cluster (real Kubernetes)"]
+        direction TB
+
+        subgraph HostControlPlane["Host Control Plane"]
+            HOST_API["kube-apiserver\n(host cluster)"]
+            HOST_ETCD["etcd\n(host cluster state)"]
+            HOST_SCHED["kube-scheduler\n(host cluster)"]
+        end
+
+        subgraph VClusterA["vCluster: team-alpha (namespace: vc-team-alpha)"]
+            direction TB
+            VC_API_A["kube-apiserver\n(virtual — runs as pod)\nTeam Alpha sees this\nas their full cluster"]
+            VC_ETCD_A["etcd or SQLite\n(virtual — runs as pod)"]
+            SYNCER_A["vCluster syncer\nTranslates virtual resources\nto host namespace resources"]
+            VC_NODES_A["Virtual nodes\n(reflect host node capacity\nteam sees node objects\nbut cannot modify them)"]
+        end
+
+        subgraph VClusterB["vCluster: team-beta (namespace: vc-team-beta)"]
+            direction TB
+            VC_API_B["kube-apiserver\n(virtual — runs as pod)"]
+            VC_ETCD_B["etcd or SQLite\n(virtual — runs as pod)"]
+            SYNCER_B["vCluster syncer"]
+            VC_NODES_B["Virtual nodes"]
+        end
+
+        subgraph HostWorkloads["Host Cluster Workloads (synced from vClusters)"]
+            POD_A1["Pod: payments-api\n(team-alpha)\nNamespace: vc-team-alpha\nScheduled on real host node"]
+            POD_A2["Pod: orders-worker\n(team-alpha)"]
+            POD_B1["Pod: analytics-api\n(team-beta)\nNamespace: vc-team-beta"]
+        end
+
+        subgraph SharedInfra["Shared Host Infrastructure"]
+            KYVERNO_H["Kyverno\n(host-level policies\napply to all pods\nregardless of vCluster)"]
+            CNI_H["Cilium CNI\n(host network fabric)"]
+            OTEL_H["OTel DaemonSet\n(host-level — scrapes\nall pods including\nvCluster workloads)"]
+            KARPENTER_H["Karpenter\n(host node provisioning)"]
+        end
+    end
+
+    subgraph TeamAlpha["Team Alpha (sees only their vCluster)"]
+        DEV_A["Developer A\nkubectl → vc-team-alpha API\nFull cluster-admin in their vCluster\nCannot see team-beta resources"]
+    end
+
+    subgraph TeamBeta["Team Beta"]
+        DEV_B["Developer B\nkubectl → vc-team-beta API\nFull cluster-admin in their vCluster"]
+    end
+
+    DEV_A -->|"kubeconfig points to\nvirtual API"| VC_API_A
+    DEV_B -->|"kubeconfig points to\nvirtual API"| VC_API_B
+
+    VC_API_A --> VC_ETCD_A
+    VC_API_A --> SYNCER_A
+    SYNCER_A -->|"creates real pods\nin host namespace"| POD_A1
+    SYNCER_A -->|"creates real pods\nin host namespace"| POD_A2
+
+    VC_API_B --> VC_ETCD_B
+    VC_API_B --> SYNCER_B
+    SYNCER_B -->|"creates real pods\nin host namespace"| POD_B1
+
+    KYVERNO_H -.->|"enforces policies on"| POD_A1
+    KYVERNO_H -.->|"enforces policies on"| POD_B1
+    CNI_H -.->|"provides networking"| POD_A1
+    CNI_H -.->|"provides networking"| POD_B1
+    OTEL_H -.->|"scrapes"| POD_A1
+    OTEL_H -.->|"scrapes"| POD_B1
+    KARPENTER_H -.->|"provisions nodes for"| HostWorkloads
+
+    style HostCluster fill:#2C3E50,color:#fff
+    style VClusterA fill:#2980B9,color:#fff
+    style VClusterB fill:#8E44AD,color:#fff
+    style SharedInfra fill:#27AE60,color:#fff
+    style TeamAlpha fill:#f0f0f0,color:#000
+    style TeamBeta fill:#f0f0f0,color:#000

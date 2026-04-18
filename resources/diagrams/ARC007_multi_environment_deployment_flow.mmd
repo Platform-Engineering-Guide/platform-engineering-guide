@@ -1,0 +1,20 @@
+stateDiagram-v2
+    [*] --> CI_Build: git push to main
+
+    CI_Build --> Dev_Deploy: CI passes
+    Dev_Deploy --> Dev_Tests: Deploy to dev namespace
+    Dev_Tests --> Staging_Gate: Smoke tests pass
+
+    Staging_Gate --> Staging_Deploy: Automatic promotion
+    Staging_Deploy --> Staging_Tests: Deploy to staging
+    Staging_Tests --> Prod_Gate: Integration tests pass
+
+    Prod_Gate --> Canary: Manual approval / change record
+    Canary --> Prod_Analyse: 10% traffic canary
+    Prod_Analyse --> Full_Rollout: Error budget OK\n(Argo Rollouts / Flagger)
+    Prod_Analyse --> Rollback: Error budget breached
+
+    Full_Rollout --> [*]
+    Rollback --> Staging_Gate: Investigate and retry
+
+    CI_Build --> [*]: CI fails — notify developer

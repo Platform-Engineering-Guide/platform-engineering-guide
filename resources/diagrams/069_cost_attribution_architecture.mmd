@@ -1,0 +1,48 @@
+flowchart TD
+    subgraph CloudBilling["Cloud Billing Data"]
+        AWS_CUR["AWS Cost & Usage Report\n(CUR)\nHourly granularity\nInstance type, region,\nspot vs on-demand\nExported to S3"]
+        PRICING_API["AWS Pricing API\n(current on-demand prices\nfor normalisation)"]
+    end
+
+    subgraph ClusterData["Kubernetes Cluster Data"]
+        KUBE_STATE["kube-state-metrics\nPod resource requests\nand limits per container\nNode labels and capacity"]
+        NODE_META["Node metadata\nInstance type\nLifecycle (spot/on-demand)\nAvailability zone"]
+        NS_LABELS["Namespace labels\nplatform.example.com/team\nplatform.example.com/cost-centre\nplatform.example.com/env"]
+        POD_LABELS["Pod labels\napp.kubernetes.io/name\nplatform.example.com/tier"]
+    end
+
+    subgraph OpenCost["OpenCost (deployment in cluster)"]
+        direction TB
+        OC_PROM["Prometheus scrape\nCollects kube-state-metrics\n+ node metrics"]
+        OC_CUR["CUR integration\nFetches AWS billing data\nfrom S3 via IRSA"]
+        OC_ENGINE["Cost allocation engine\nMaps cloud costs to\nK8s workloads via:\n• Node → instance cost\n• Pod CPU/mem fraction\n• PVC storage\n• Load balancer costs\n• Network egress"]
+        OC_API["OpenCost API\nCost by namespace,\nlabel, controller,\npod, container"]
+    end
+
+    subgraph Attribution["Cost Attribution Model"]
+        direction LR
+        DIRECT["Direct costs\n(pods in a namespace\nown 100% of their\nresource costs)"]
+        SHARED["Shared costs\n(platform addons:\nArgo CD, OTel,\nBackstage, Kyverno)\nSplit proportionally\nby team workload share"]
+        IDLE["Idle costs\n(unallocated cluster\ncapacity between\nrequest and limit)\nAttributed to\ncost centre or\nshared pool"]
+    end
+
+    subgraph Reporting["Cost Reporting Layer"]
+        GRAFANA_COST["Grafana Dashboard\nOpenCost plugin:\n• Cost by team (week/month)\n• Cost by service\n• Cost by environment\n• Efficiency score\n  (request vs actual)"]
+        BACKSTAGE_COST["Backstage\nCost Insights plugin:\n• Per-component cost\n• Trend vs last period\n• Budget alert"]
+        WEEKLY_DIGEST["Weekly Slack digest\n#platform-costs\n@team-payments: £4,230 this week\n+12% vs last week\nTop cost: payments-api (GPU)"]
+        BUDGET_ALERT["Budget alerts\nOpenCost API → Alertmanager\nFire when team exceeds\nmonthly budget threshold"]
+    end
+
+    CloudBilling --> OpenCost
+    ClusterData --> OpenCost
+    OC_PROM --> OC_ENGINE
+    OC_CUR --> OC_ENGINE
+    OC_ENGINE --> OC_API
+    OC_API --> Attribution
+    Attribution --> Reporting
+
+    style CloudBilling fill:#FF9900,color:#000
+    style ClusterData fill:#2C3E50,color:#fff
+    style OpenCost fill:#2980B9,color:#fff
+    style Attribution fill:#E67E22,color:#fff
+    style Reporting fill:#27AE60,color:#fff

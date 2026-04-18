@@ -1,0 +1,34 @@
+flowchart TD
+    subgraph Funnel["Platform Adoption Funnel"]
+        direction TB
+
+        UNAWARE["😶 Unaware\n────────────\nDeveloper doesn't know\nthe platform exists\nor what it offers\n\nLost here if:\n• No internal marketing\n• No onboarding programme\n• Platform hidden behind tickets"]
+
+        AWARE["👀 Aware\n────────────\nKnows the platform exists\nHas read the docs or\nattended a demo\n\nLost here if:\n• Docs are out of date\n• First impression is\n  confusing or painful\n• 'This looks like more work'"]
+
+        TRIAL["🧪 Trial\n────────────\nTrying the golden path\nfor a new service or\nmigrating an existing one\n\nLost here if:\n• Day-1 experience fails\n• Template is broken\n• Support is slow\n• Escape hatches are blocked"]
+
+        REGULAR["✅ Regular Use\n────────────\nUsing the platform\nfor all new services\nTrusts the golden path\n\nLost here if:\n• Platform reliability\n  degrades\n• Golden path falls behind\n  team's tech choices\n• Better alternative emerges"]
+
+        ADVOCATE["📢 Advocate\n────────────\nRecommends the platform\nto peers\nContributes templates\nor plugins\nRaises improvement ideas\n\nThis is your flywheel —\nadvocates recruit users"]
+
+        UNAWARE -->|"Internal marketing:\nnewsletter, demos,\nall-hands mentions"| AWARE
+        AWARE -->|"Frictionless onboarding:\nscaffolder template,\nfirst-service guide"| TRIAL
+        TRIAL -->|"Day-1 success:\nworks first time,\nsupport available"| REGULAR
+        REGULAR -->|"Community building:\noffice hours, champions,\nrecognition"| ADVOCATE
+        ADVOCATE -->|"Word of mouth +\ntestimony at all-hands"| AWARE
+    end
+
+    subgraph Measurement["Measuring Each Stage"]
+        M_UNAWARE["Awareness: % of engineers\nwho can describe\nwhat the platform does\n(quarterly survey)"]
+        M_TRIAL["Trial: new services\ncreated via scaffolder\nvs total new services\nin the quarter"]
+        M_REGULAR["Regular: % of services\ndeployed via golden path\n(Argo CD Application count\nvs total repos)"]
+        M_ADVOCATE["Advocacy: unsolicited\nplatform mentions in\nall-hands, Slack,\nengineering blog posts"]
+    end
+
+    style UNAWARE fill:#E74C3C,color:#fff
+    style AWARE fill:#E67E22,color:#fff
+    style TRIAL fill:#F39C12,color:#000
+    style REGULAR fill:#27AE60,color:#fff
+    style ADVOCATE fill:#2980B9,color:#fff
+    style Funnel fill:#2C3E50,color:#fff

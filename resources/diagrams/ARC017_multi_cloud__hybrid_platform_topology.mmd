@@ -1,0 +1,45 @@
+graph TD
+    subgraph ControlPlane["Management Control Plane (on-prem or dedicated cloud)"]
+        CLUSTERAPI["Cluster API\n(cluster lifecycle)"]
+        CROSSPLANE_MC["Crossplane\n(multi-provider compositions)"]
+        ARGOCD_MC["Argo CD\n(multi-cluster GitOps)"]
+        OBS_CENTRAL["Centralised Observability\n(Grafana LGTM federated)"]
+    end
+
+    subgraph AWS["AWS Region (Primary)"]
+        EKS_1["EKS Cluster A\n(production)"]
+        EKS_2["EKS Cluster B\n(staging)"]
+    end
+
+    subgraph GCP["GCP Region (DR / ML workloads)"]
+        GKE_1["GKE Cluster\n(ML platform)"]
+    end
+
+    subgraph OnPrem["On-Premises (regulated workloads)"]
+        RKE2["RKE2 Cluster\n(compliance boundary)"]
+    end
+
+    subgraph Network["Unified Networking"]
+        CILIUM_MESH["Cilium Cluster Mesh\n(cross-cluster L3/L4)"]
+        SUBMARINER["Submariner\n(on-prem overlay)"]
+    end
+
+    CLUSTERAPI --> EKS_1
+    CLUSTERAPI --> GKE_1
+    CLUSTERAPI --> RKE2
+    CROSSPLANE_MC --> EKS_1
+    CROSSPLANE_MC --> GKE_1
+    ARGOCD_MC --> EKS_1
+    ARGOCD_MC --> EKS_2
+    ARGOCD_MC --> GKE_1
+    ARGOCD_MC --> RKE2
+    EKS_1 --> OBS_CENTRAL
+    GKE_1 --> OBS_CENTRAL
+    RKE2 --> OBS_CENTRAL
+    EKS_1 --- CILIUM_MESH
+    GKE_1 --- CILIUM_MESH
+    RKE2 --- SUBMARINER
+
+    style ARGOCD_MC fill:#27AE60,color:#fff
+    style CROSSPLANE_MC fill:#2980B9,color:#fff
+    style OBS_CENTRAL fill:#8E44AD,color:#fff

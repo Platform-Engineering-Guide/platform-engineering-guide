@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant ARGOCD as Argo CD
+    participant API as kube-apiserver
+    participant ADMISSION as Admission Webhooks<br/>(Kyverno / OPA)
+    participant SCHEDULER as kube-scheduler
+    participant KUBELET as kubelet (Node)
+    participant CONTAINERD as containerd
+    participant REGISTRY as OCI Registry
+
+    ARGOCD->>API: Apply manifests (Deployment, Service, etc.)
+    API->>ADMISSION: Mutating admission webhook
+    ADMISSION-->>API: Mutate (inject sidecars, set defaults)
+    API->>ADMISSION: Validating admission webhook
+    ADMISSION-->>API: Validate (policy checks pass / block)
+    API->>SCHEDULER: New Pod pending
+    SCHEDULER-->>API: Bind Pod to Node (Karpenter may provision node)
+    API->>KUBELET: Inform kubelet of scheduled Pod
+    KUBELET->>REGISTRY: Pull image (verify Cosign signature)
+    REGISTRY-->>KUBELET: Image layers
+    KUBELET->>CONTAINERD: Create container
+    CONTAINERD-->>KUBELET: Container running
+    KUBELET-->>API: Pod status: Running
+    API-->>ARGOCD: Resource health: Healthy

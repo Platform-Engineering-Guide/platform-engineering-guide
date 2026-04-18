@@ -1,0 +1,64 @@
+erDiagram
+    DOMAIN {
+        string name
+        string description
+        string owner
+    }
+    SYSTEM {
+        string name
+        string description
+        string owner
+        string domain
+    }
+    COMPONENT {
+        string name
+        string type "service|website|library|tool"
+        string lifecycle "experimental|production|deprecated"
+        string owner
+        string system
+        string language
+    }
+    API {
+        string name
+        string type "openapi|grpc|asyncapi|graphql"
+        string lifecycle
+        string owner
+        string system
+    }
+    RESOURCE {
+        string name
+        string type "database|s3Bucket|queue|cache"
+        string owner
+        string system
+    }
+    GROUP {
+        string name
+        string type "team|business-unit|department"
+        string parent
+    }
+    USER {
+        string name
+        string email
+        string memberOf
+    }
+    LOCATION {
+        string type "url|file"
+        string target
+    }
+
+    DOMAIN ||--o{ SYSTEM : "contains"
+    SYSTEM ||--o{ COMPONENT : "contains"
+    SYSTEM ||--o{ API : "contains"
+    SYSTEM ||--o{ RESOURCE : "contains"
+    COMPONENT ||--o{ API : "provides"
+    COMPONENT ||--o{ API : "consumes"
+    COMPONENT ||--o{ RESOURCE : "dependsOn"
+    COMPONENT ||--o{ COMPONENT : "dependsOn"
+    GROUP ||--o{ GROUP : "hasMember (parent)"
+    GROUP ||--o{ USER : "hasMember"
+    GROUP ||--o{ COMPONENT : "owns"
+    GROUP ||--o{ API : "owns"
+    GROUP ||--o{ SYSTEM : "owns"
+    GROUP ||--o{ RESOURCE : "owns"
+    LOCATION ||--o{ COMPONENT : "emits"
+    LOCATION ||--o{ API : "emits"

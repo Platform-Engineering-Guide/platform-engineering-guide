@@ -1,0 +1,44 @@
+flowchart TD
+    subgraph Legend["Traffic Split at Each Step"]
+        LEG_STABLE["🟦 Stable (current version)"]
+        LEG_CANARY["🟧 Canary (new version)"]
+    end
+
+    START(["New image tag pushed\nto config repo"]) --> DEPLOY_CANARY["Deploy canary ReplicaSet\n(1 replica at 10% weight)\n🟦🟦🟦🟦🟦🟦🟦🟦🟦🟧"]
+
+    DEPLOY_CANARY --> PAUSE_1["Pause: 2 minutes\n(stabilisation)"]
+
+    PAUSE_1 --> ANALYSIS_1["AnalysisRun: success-rate-check\nQuery Prometheus:\nError rate < 1% for 5 min\nP99 latency < 300ms"]
+
+    ANALYSIS_1 --> GATE_1{Analysis\nresult?}
+    GATE_1 -->|"✅ Pass"| STEP_25["Set weight: 25%\n🟦🟦🟦🟦🟦🟦🟦🟧🟧🟧"]
+    GATE_1 -->|"❌ Fail"| ABORT["Abort rollout\nargo rollouts abort <name>\nTraffic: 🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦\n100% stable instantly"]
+
+    STEP_25 --> PAUSE_2["Pause: 5 minutes"]
+    PAUSE_2 --> ANALYSIS_2["AnalysisRun: success-rate-check\n+ latency-check"]
+    ANALYSIS_2 --> GATE_2{Analysis\nresult?}
+    GATE_2 -->|"✅ Pass"| STEP_50["Set weight: 50%\n🟦🟦🟦🟦🟦🟧🟧🟧🟧🟧"]
+    GATE_2 -->|"❌ Fail"| ABORT
+
+    STEP_50 --> PAUSE_3["Pause: 10 minutes\n(higher traffic volume\ngives better signal)"]
+    PAUSE_3 --> ANALYSIS_3["AnalysisRun: success-rate-check\n+ latency-check\n+ business-metric-check\n(optional)"]
+    ANALYSIS_3 --> GATE_3{Analysis\nresult?}
+    GATE_3 -->|"✅ Pass"| MANUAL_GATE["Pause: indefinite\n(manual promotion required\nfor production)"]
+    GATE_3 -->|"❌ Fail"| ABORT
+
+    MANUAL_GATE --> HUMAN{Engineer\napproves?}
+    HUMAN -->|"argo rollouts promote <name>"| STEP_100["Set weight: 100%\n🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧\nStable = new version"]
+    HUMAN -->|"argo rollouts abort <name>"| ABORT
+
+    STEP_100 --> CLEANUP["Scale down old stable\nReplicaSet to 0"]
+    CLEANUP --> COMPLETE(["✅ Rollout complete\nNew version is stable"])
+    ABORT --> NOTIFY["Notify Slack channel\n#deployments-alerts\nWith failure reason"]
+    NOTIFY --> ROLLBACK_COMPLETE(["🔴 Rollback complete\nInvestigate before retrying"])
+
+    style ABORT fill:#E74C3C,color:#fff
+    style COMPLETE fill:#27AE60,color:#fff
+    style ROLLBACK_COMPLETE fill:#E74C3C,color:#fff
+    style MANUAL_GATE fill:#E67E22,color:#fff
+    style ANALYSIS_1 fill:#2980B9,color:#fff
+    style ANALYSIS_2 fill:#2980B9,color:#fff
+    style ANALYSIS_3 fill:#2980B9,color:#fff

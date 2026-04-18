@@ -1,0 +1,34 @@
+sequenceDiagram
+    participant WORKLOAD as Workload (Pod)
+    participant AGENT as SPIRE Agent\n(DaemonSet on node)
+    participant SERVER as SPIRE Server\n(control plane)
+    participant PEER as Peer Service\n(another workload)
+
+    Note over WORKLOAD,SERVER: Phase 1 — Node Attestation (once per node)
+
+    AGENT->>SERVER: Node attestation request\n(AWS IID / K8s SAT / TPM)
+    SERVER->>SERVER: Verify node identity\nagainst attestation plugin
+    SERVER-->>AGENT: Node SVID issued\n(X.509 cert for this node)
+
+    Note over WORKLOAD,SERVER: Phase 2 — Workload Attestation (per pod)
+
+    WORKLOAD->>AGENT: RequestX509SVID()\n(via Unix domain socket\n/run/spire/sockets/agent.sock)
+    AGENT->>AGENT: Inspect calling process:\n• Kubernetes SA annotations\n• Pod labels and namespace\n• Container image digest
+    AGENT->>SERVER: Workload attestation request\n{namespace, serviceAccount, podLabels}
+    SERVER->>SERVER: Match against registration entries:\nspiffe://cluster.local/ns/payments/sa/payments-api
+    SERVER-->>AGENT: X.509 SVID issued\n(short-lived: 1 hour default)\nSAN = SPIFFE ID
+    AGENT-->>WORKLOAD: X.509 SVID + trust bundle\nDelivered via UNIX socket\n(no secret, no file mount needed)
+
+    Note over WORKLOAD,PEER: Phase 3 — mTLS between services
+
+    WORKLOAD->>PEER: TLS ClientHello\n(presents X.509 SVID)
+    PEER->>PEER: Verify SVID against\nSPIFFE trust bundle
+    PEER->>WORKLOAD: TLS ServerHello\n(presents own X.509 SVID)
+    WORKLOAD->>WORKLOAD: Verify peer SVID\nCheck SPIFFE ID is in allowlist:\nspiffe://cluster.local/ns/orders/sa/orders-api
+    WORKLOAD-->>PEER: mTLS channel established\nMutual authentication complete
+
+    Note over AGENT,SERVER: Continuous — SVID rotation
+
+    AGENT->>SERVER: Re-attestation before SVID expiry\n(at 50% of TTL by default)
+    SERVER-->>AGENT: New SVID issued\nOld SVID still valid until expiry
+    AGENT-->>WORKLOAD: New SVID pushed via socket\nZero downtime rotation

@@ -1,0 +1,87 @@
+flowchart LR
+    subgraph Sources["Signal Sources"]
+        APP_OTLP["Application\n(OTLP gRPC/HTTP)"]
+        PROM_SCRAPE["Prometheus\nendpoints"]
+        STATSD["StatsD\nmetrics"]
+        JAEGER_SRC["Jaeger\nclient"]
+        HOST["Host metrics\n(CPU, mem, disk)"]
+        K8S_EVENTS["Kubernetes\nevents"]
+    end
+
+    subgraph Collector["OTel Collector"]
+        direction TB
+
+        subgraph Receivers["Receivers\n(ingest data)"]
+            R_OTLP["otlp receiver\n(gRPC :4317\nHTTP :4318)"]
+            R_PROM["prometheus receiver\n(scrape_configs)"]
+            R_STATSD["statsd receiver\n(:8125 UDP)"]
+            R_JAEGER["jaeger receiver\n(thrift, gRPC)"]
+            R_HOST["hostmetrics receiver\n(filesystem, cpu, memory)"]
+            R_K8S["k8sobjects receiver\n(watch API server)"]
+        end
+
+        subgraph Processors["Processors\n(transform in-flight)"]
+            P_MEMORY["memory_limiter\nDrop data if\nCollector OOMs\n⚠ Always first"]
+            P_BATCH["batch\nBuffer and send\nin efficient chunks"]
+            P_K8SATTR["k8sattributes\nEnrich with pod,\nnamespace, node,\ndeployment metadata"]
+            P_RESOURCE["resource\nAdd/modify/delete\nresource attributes"]
+            P_FILTER["filter\nDrop noisy spans\nor metrics by rule"]
+            P_TAIL["tail_sampling\nSample by trace\ncharacteristics"]
+            P_TRANSFORM["transform\nOTTL expressions —\nrename, compute,\nextract fields"]
+        end
+
+        subgraph Exporters["Exporters\n(send to backends)"]
+            E_OTLP["otlp exporter\n(to Tempo / remote\nOTLP endpoint)"]
+            E_PROM["prometheusremotewrite\n(to Mimir / Cortex)"]
+            E_LOKI["loki exporter\n(to Loki)"]
+            E_DEBUG["debug exporter\n(stdout — dev only)"]
+        end
+
+        subgraph Pipelines["Named Pipelines\n(connect receivers → processors → exporters)"]
+            PIPE_TRACES["traces pipeline:\nreceivers: [otlp, jaeger]\nprocessors: [memory_limiter,\nk8sattributes, filter,\ntail_sampling, batch]\nexporters: [otlp]"]
+            PIPE_METRICS["metrics pipeline:\nreceivers: [otlp, prometheus,\nstatsd, hostmetrics]\nprocessors: [memory_limiter,\nk8sattributes, resource, batch]\nexporters: [prometheusremotewrite]"]
+            PIPE_LOGS["logs pipeline:\nreceivers: [otlp, k8sobjects]\nprocessors: [memory_limiter,\nk8sattributes, resource, batch]\nexporters: [loki]"]
+        end
+
+        subgraph Extensions["Extensions\n(collector lifecycle)"]
+            EXT_HEALTH["health_check\n(:13133)"]
+            EXT_PPROF["pprof\n(:1777)"]
+            EXT_ZPAGES["zpages\n(:55679)\n(debug traces)"]
+        end
+    end
+
+    subgraph Backends["Observability Backends"]
+        TEMPO["Grafana Tempo"]
+        MIMIR["Grafana Mimir"]
+        LOKI_BE["Grafana Loki"]
+    end
+
+    APP_OTLP --> R_OTLP
+    PROM_SCRAPE --> R_PROM
+    STATSD --> R_STATSD
+    JAEGER_SRC --> R_JAEGER
+    HOST --> R_HOST
+    K8S_EVENTS --> R_K8S
+
+    R_OTLP --> PIPE_TRACES
+    R_JAEGER --> PIPE_TRACES
+    R_OTLP --> PIPE_METRICS
+    R_PROM --> PIPE_METRICS
+    R_STATSD --> PIPE_METRICS
+    R_HOST --> PIPE_METRICS
+    R_OTLP --> PIPE_LOGS
+    R_K8S --> PIPE_LOGS
+
+    PIPE_TRACES --> E_OTLP
+    PIPE_METRICS --> E_PROM
+    PIPE_LOGS --> E_LOKI
+
+    E_OTLP --> TEMPO
+    E_PROM --> MIMIR
+    E_LOKI --> LOKI_BE
+
+    style Receivers fill:#2980B9,color:#fff
+    style Processors fill:#E67E22,color:#fff
+    style Exporters fill:#27AE60,color:#fff
+    style Pipelines fill:#2C3E50,color:#fff
+    style Extensions fill:#8E44AD,color:#fff

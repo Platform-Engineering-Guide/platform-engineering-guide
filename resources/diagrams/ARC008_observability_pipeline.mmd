@@ -1,0 +1,45 @@
+flowchart TD
+    subgraph Workloads["Workloads (Kubernetes)"]
+        APP["Application Pods\n(OTel SDK auto-instrumented)"]
+        KUBELET["kubelet / kube-state-metrics"]
+        NODE["Node Exporter"]
+    end
+
+    subgraph Collection["Collection Layer"]
+        OTEL_AGENT["OTel Collector (DaemonSet)\nreceives OTLP, scrapes Prometheus"]
+        OTEL_GW["OTel Collector (Gateway)\naggregates, batches, routes"]
+    end
+
+    subgraph Storage["Storage & Query"]
+        MIMIR["Grafana Mimir\n(long-term metrics)"]
+        LOKI["Grafana Loki\n(log aggregation)"]
+        TEMPO["Grafana Tempo\n(distributed traces)"]
+        PYRO["Grafana Pyroscope\n(continuous profiles)"]
+    end
+
+    subgraph Presentation["Presentation & Alerting"]
+        GRAFANA["Grafana Dashboards"]
+        ALERTMGR["Alertmanager"]
+        PAGERDUTY["PagerDuty / OpsGenie"]
+        SLO["Sloth / Pyrra\n(SLO management)"]
+    end
+
+    APP -->|"OTLP gRPC"| OTEL_AGENT
+    KUBELET -->|"Prometheus scrape"| OTEL_AGENT
+    NODE -->|"Prometheus scrape"| OTEL_AGENT
+    OTEL_AGENT --> OTEL_GW
+    OTEL_GW -->|"Remote write"| MIMIR
+    OTEL_GW -->|"Loki push"| LOKI
+    OTEL_GW -->|"OTLP traces"| TEMPO
+    OTEL_GW -->|"OTLP profiles"| PYRO
+    MIMIR --> GRAFANA
+    LOKI --> GRAFANA
+    TEMPO --> GRAFANA
+    PYRO --> GRAFANA
+    MIMIR --> SLO
+    SLO --> ALERTMGR
+    ALERTMGR --> PAGERDUTY
+
+    style OTEL_GW fill:#E67E22,color:#fff
+    style GRAFANA fill:#8E44AD,color:#fff
+    style SLO fill:#27AE60,color:#fff

@@ -1,0 +1,41 @@
+sequenceDiagram
+    participant CI as CI Pipeline\n(GitHub Actions)
+    participant COSIGN as Cosign CLI
+    participant FULCIO as Fulcio\n(Certificate Authority)
+    participant REKOR as Rekor\n(Transparency Log)
+    participant REGISTRY as OCI Registry\n(ECR / GAR)
+    participant VERIFIER as Verifier\n(Kyverno at admission)
+
+    Note over CI,VERIFIER: Signing — happens in CI after image push
+
+    CI->>CI: GitHub Actions OIDC token issued\n(identity: repo/workflow/ref)\nNo long-lived key needed
+
+    CI->>COSIGN: cosign sign --yes\n  <registry>/<image>@<digest>
+
+    COSIGN->>FULCIO: POST /api/v1/signingCert\n{oidcToken: <GitHub OIDC JWT>}
+
+    FULCIO->>FULCIO: Verify OIDC token\nwith GitHub OIDC provider\nExtract identity:\nhttps://github.com/my-org/my-repo/.github/workflows/ci.yml@refs/heads/main
+
+    FULCIO-->>COSIGN: Short-lived X.509 cert\n(valid: 10 minutes)\nSAN = GitHub Actions identity URL\nIssuer = Fulcio CA
+
+    COSIGN->>COSIGN: Sign image digest\nwith ephemeral key\n(key exists only for this signing)\nCreate signature payload:\n{digest, cert, signature}
+
+    COSIGN->>REKOR: POST /api/v1/log/entries\n{rekordBundle: {signature, cert, digest}}
+
+    REKOR->>REKOR: Append entry to\nimmutable Merkle tree\nIssue signed timestamp\n(RFC 3161)
+
+    REKOR-->>COSIGN: Log entry created\n{logIndex, uuid, integratedTime,\nsignedEntryTimestamp}
+
+    COSIGN->>REGISTRY: Push signature as\nOCI artifact (referrer)\nAttach to image digest\n(sigstore bundle format)
+
+    Note over CI,VERIFIER: Verification — happens at Kubernetes admission
+
+    VERIFIER->>REGISTRY: Fetch image + attached\nOCI referrers (signatures)
+    VERIFIER->>COSIGN: cosign verify\n  --certificate-oidc-issuer\n  --certificate-identity-regexp
+    COSIGN->>REKOR: Verify log entry\nexists and is consistent\n(inclusion proof)
+    REKOR-->>COSIGN: Inclusion proof verified\n(signature was timestamped\nbefore cert expiry)
+    COSIGN->>FULCIO: Verify cert chain\nback to Fulcio root CA
+    FULCIO-->>COSIGN: Chain verified
+    COSIGN-->>VERIFIER: ✅ Signature valid\nSigned by: github.com/my-org/my-repo\nAt: 2026-01-15T14:23:01Z
+    VERIFIER->>VERIFIER: Identity matches policy:\nsubject matches my-org/*\nIssuer matches GitHub Actions
+    VERIFIER-->>VERIFIER: ✅ Admit pod

@@ -1,0 +1,62 @@
+flowchart TD
+    subgraph Measurement["1. Measurement — SLI"]
+        EVENTS["Raw events\n(HTTP requests, RPC calls,\nDB queries, job runs)"]
+        GOOD["Good events\n(status < 500, latency < 200ms)"]
+        TOTAL["Total events"]
+        SLI["SLI =\ngood_events / total_events\n(ratio, 0.0–1.0)"]
+        EVENTS --> GOOD
+        EVENTS --> TOTAL
+        GOOD --> SLI
+        TOTAL --> SLI
+    end
+
+    subgraph Objective["2. Objective — SLO"]
+        SLO_DEF["SLO = SLI ≥ 99.5%\nover a 30-day rolling window\n\nMeaning: we tolerate\n0.5% bad events per month"]
+        SLI --> SLO_DEF
+    end
+
+    subgraph Budget["3. Error Budget"]
+        BUDGET_CALC["Error Budget =\n1 − SLO target\n= 0.5% of events\nor ~3.6 hours downtime/month\n(99.5% availability)"]
+        BUDGET_REMAIN["Remaining budget\ntracks how much\n'bad' is still allowed"]
+        SLO_DEF --> BUDGET_CALC
+        BUDGET_CALC --> BUDGET_REMAIN
+    end
+
+    subgraph BurnRate["4. Burn Rate Alerts"]
+        direction TB
+        BURN_DEF["Burn rate =\nrate of budget consumption\nvs expected rate\n\nRate 1.0 = consuming at\nexact SLO threshold\nRate 14.4 = budget gone in 2 hours"]
+
+        FAST_BURN["🔴 Fast Burn Alert (P1)\nWindow: 1h\nBurn rate: > 14.4×\n(budget exhausted in < 2 hours)\nAction: Page immediately"]
+
+        SLOW_BURN["🟡 Slow Burn Alert (P2)\nWindow: 6h\nBurn rate: > 6×\n(budget exhausted in < 5 days)\nAction: Ticket + investigation"]
+
+        LOW_BURN["🟢 No Alert\nBurn rate: ≤ 6×\nSLO tracking normally"]
+
+        BUDGET_REMAIN --> BURN_DEF
+        BURN_DEF --> FAST_BURN
+        BURN_DEF --> SLOW_BURN
+        BURN_DEF --> LOW_BURN
+    end
+
+    subgraph Response["5. Error Budget Policy"]
+        BUDGET_HEALTHY["Budget > 50% remaining\n→ Deploy freely\n→ Invest in features"]
+        BUDGET_CAUTION["Budget 10–50% remaining\n→ Slow deployment cadence\n→ Prioritise reliability work"]
+        BUDGET_EXHAUSTED["Budget < 10% remaining\n→ Freeze feature deployments\n→ All hands on reliability"]
+        BUDGET_GONE["Budget exhausted\n→ Incident declared\n→ Postmortem required"]
+
+        FAST_BURN --> BUDGET_EXHAUSTED
+        SLOW_BURN --> BUDGET_CAUTION
+        LOW_BURN --> BUDGET_HEALTHY
+    end
+
+    style Measurement fill:#2C3E50,color:#fff
+    style Objective fill:#2980B9,color:#fff
+    style Budget fill:#E67E22,color:#fff
+    style BurnRate fill:#2C3E50,color:#fff
+    style FAST_BURN fill:#E74C3C,color:#fff
+    style SLOW_BURN fill:#F39C12,color:#000
+    style LOW_BURN fill:#27AE60,color:#fff
+    style Response fill:#f0f0f0,color:#000
+    style BUDGET_EXHAUSTED fill:#E74C3C,color:#fff
+    style BUDGET_GONE fill:#922B21,color:#fff
+    style BUDGET_HEALTHY fill:#27AE60,color:#fff

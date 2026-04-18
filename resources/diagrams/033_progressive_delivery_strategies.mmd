@@ -1,0 +1,36 @@
+stateDiagram-v2
+    [*] --> Stable: New version ready\nto deploy
+
+    state "Canary Delivery" as Canary {
+        [*] --> Canary_10: Set canary weight 10%
+        Canary_10 --> Canary_Analysis: Wait + run AnalysisRun\n(error rate, latency)
+        Canary_Analysis --> Canary_50: Analysis passes
+        Canary_Analysis --> Canary_Abort: Analysis fails\n(error budget breached)
+        Canary_50 --> Canary_Full: Wait + analysis passes
+        Canary_Abort --> Stable: Abort — traffic\nreturns to stable
+        Canary_Full --> [*]: Promotion complete\nnew version is stable
+    }
+
+    state "Blue/Green Delivery" as BlueGreen {
+        [*] --> Green_Deploy: Deploy new version (green)\nto inactive slot
+        Green_Deploy --> Green_Test: Run smoke tests\nagainst green slot
+        Green_Test --> Traffic_Switch: Tests pass —\nswitch traffic 100%\nfrom blue → green
+        Green_Test --> Green_Abort: Tests fail —\ngreen slot deleted
+        Traffic_Switch --> Blue_Standby: Old blue kept\nfor instant rollback\n(configurable period)
+        Blue_Standby --> [*]: Blue deleted\nafter standby period
+        Green_Abort --> [*]: Blue remains active
+    }
+
+    state "A/B Delivery" as AB {
+        [*] --> AB_Split: Route traffic by header\ncookie or user segment\nVariant A vs Variant B
+        AB_Split --> AB_Measure: Collect metrics per variant\n(conversion, engagement,\nerror rate)
+        AB_Measure --> AB_Winner: Statistical significance\nreached — variant selected
+        AB_Winner --> AB_Full: Roll winning variant\nto 100% of traffic
+        AB_Full --> [*]: Experiment complete
+        AB_Measure --> AB_Inconclusive: No significant difference\nor experiment timeout
+        AB_Inconclusive --> [*]: Keep stable variant\ndocument findings
+    }
+
+    Stable --> Canary: Risk-sensitive change\ngradual rollout needed
+    Stable --> BlueGreen: Instant cutover\nor rollback required
+    Stable --> AB: Feature experiment\nwith business metric

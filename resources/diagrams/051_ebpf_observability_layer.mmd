@@ -1,0 +1,70 @@
+flowchart TD
+    subgraph KernelSpace["Linux Kernel Space"]
+        direction TB
+
+        subgraph KernelHooks["eBPF Attachment Points"]
+            KPROBE["kprobes / kretprobes\nAttach to any kernel\nfunction entry/exit\nExample: tcp_sendmsg,\nsys_execve"]
+            TRACEPOINT["Tracepoints\nStable kernel instrumentation\npoints (preferred over kprobes)\nExample: sched:sched_switch,\nsyscalls:sys_enter_write"]
+            XDP["XDP (eXpress Data Path)\nPacket processing at\nnetwork driver level\nBefore kernel network stack\nUltra-low latency"]
+            TC["TC (Traffic Control)\nIngress/egress packet hook\nAfter kernel network stack\nCilium uses this for\nnetwork policy enforcement"]
+            UPROBE["uprobes\nAttach to user-space\nfunction entry/exit\nLanguage-specific tracing\nwithout source changes"]
+        end
+
+        VERIFIER["eBPF Verifier\nValidates all eBPF programs\nbefore loading:\n• No loops (bounded)\n• Memory safe\n• No kernel crashes\n• < 1M instructions"]
+
+        JIT["JIT Compiler\nCompiles eBPF bytecode\nto native machine code\nNear-native performance"]
+
+        MAPS["eBPF Maps\nShared data structures\nbetween kernel and\nuser space:\n• Hash maps\n• Ring buffers\n• Per-CPU arrays"]
+    end
+
+    subgraph UserSpace["User Space (eBPF Tools)"]
+        direction LR
+
+        subgraph Cilium["Cilium / Hubble"]
+            HUBBLE["Hubble\nNetwork flow observability:\n• L3/L4/L7 flows\n• DNS queries\n• HTTP request/response\n• Drop reasons\nNo sidecar needed"]
+            CILIUM_POLICY["Cilium Network Policy\nEnforced in kernel\nvia eBPF TC hooks"]
+        end
+
+        subgraph Tetragon["Tetragon (Cilium project)"]
+            TETRAG["Process execution tracing:\n• Every exec() call\n• File access (sensitive paths)\n• Network connections\n• Privilege escalation\nSecurity enforcement\nin kernel — not just audit"]
+        end
+
+        subgraph Pixie["Pixie (CNCF Sandbox)"]
+            PIXIE_CORE["Auto-instrumentation:\n• HTTP/gRPC traffic\n• DB queries (MySQL, Postgres)\n• JVM metrics\n• Go runtime metrics\nNo SDK changes required\nNo sidecar"]
+        end
+
+        subgraph Parca["Parca / Pyroscope"]
+            PARCA_CORE["Continuous profiling:\n• CPU flame graphs\n• Memory allocation\nKernel-level sampling\nvia perf_events eBPF"]
+        end
+    end
+
+    subgraph OTelCollector["OTel Collector Integration"]
+        OTEL_RECV["Receivers:\n• Hubble receiver\n• Pixie receiver\n• Custom eBPF receivers"]
+        OTEL_EXPORT["Export to:\n• Grafana Tempo (traces)\n• Grafana Mimir (metrics)\n• Grafana Loki (logs)"]
+    end
+
+    KPROBE --> VERIFIER
+    TRACEPOINT --> VERIFIER
+    XDP --> VERIFIER
+    TC --> VERIFIER
+    UPROBE --> VERIFIER
+    VERIFIER --> JIT
+    JIT --> MAPS
+
+    MAPS --> HUBBLE
+    MAPS --> TETRAG
+    MAPS --> PIXIE_CORE
+    MAPS --> PARCA_CORE
+
+    HUBBLE --> OTEL_RECV
+    PIXIE_CORE --> OTEL_RECV
+    OTEL_RECV --> OTEL_EXPORT
+
+    style KernelSpace fill:#2C3E50,color:#fff
+    style KernelHooks fill:#922B21,color:#fff
+    style UserSpace fill:#2980B9,color:#fff
+    style Cilium fill:#27AE60,color:#fff
+    style Tetragon fill:#E74C3C,color:#fff
+    style Pixie fill:#8E44AD,color:#fff
+    style Parca fill:#E67E22,color:#fff
+    style OTelCollector fill:#1A5276,color:#fff

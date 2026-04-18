@@ -1,0 +1,30 @@
+flowchart LR
+    subgraph Costs["Platform Costs (Investment)"]
+        HEADCOUNT["Platform team\nheadcount"]
+        INFRA["Infrastructure\ncosts"]
+        TOOLING["Tooling &\nlicences"]
+        TRAINING["Training &\nonboarding"]
+    end
+
+    subgraph Benefits["Measurable Benefits"]
+        direction TB
+        TOIL_RED["Toil Reduction\n(hours recovered)"]
+        INC_RED["Incident Reduction\n(MTTR × frequency)"]
+        TTD["Time-to-Deploy\n(lead time improvement)"]
+        ONBOARD["Onboarding\nacceleration"]
+        AUDIT["Audit &\ncompliance cost"]
+        REWORK["Rework &\nrollback reduction"]
+    end
+
+    subgraph Output["ROI Output"]
+        ANNUAL["Annual benefit (£/$/€)"]
+        PAYBACK["Payback period\n(months)"]
+        ROI_PCT["ROI %\n(year 1, year 3)"]
+    end
+
+    Costs -->|"investment"| Output
+    Benefits -->|"quantified savings"| Output
+
+    style Costs fill:#E74C3C,color:#fff
+    style Benefits fill:#27AE60,color:#fff
+    style Output fill:#2980B9,color:#fff

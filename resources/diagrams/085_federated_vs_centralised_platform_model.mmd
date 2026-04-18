@@ -1,0 +1,26 @@
+flowchart TD
+    START(["Choose platform\norganisational model"]) --> Q1{"Engineering org\nsize?"}
+
+    Q1 -->|"< 100 engineers"| CENTRALISED["Centralised Platform Team\nOne team, one platform\nConsistency is easy\nSmall enough to coordinate"]
+
+    Q1 -->|"100–500 engineers"| Q2{"Distinct business units\nwith different tech stacks\nor regulatory requirements?"}
+
+    Q1 -->|"> 500 engineers\nor multiple products"| Q3{"Geographic distribution\nor M&A complexity?"}
+
+    Q2 -->|"No — single product"| CENTRALISED
+
+    Q2 -->|"Yes — multiple\nbusiness units"| FEDERATED["Federated Platform Model\nCentral: shared standards,\ncore tooling, golden paths\nLocal: BU-specific extensions\nand domain optimisation"]
+
+    Q3 -->|"No — single HQ"| HYBRID["Hybrid: Core centralised,\nExtensions federated\nPlatform council for\ncross-team standards"]
+
+    Q3 -->|"Yes — multi-region\nor post-acquisition"| FEDERATED
+
+    CENTRALISED --> C_DETAIL["Structure:\n• One platform team\n• One backlog\n• Consistent standards\n• Single golden path\n\nRisks:\n• Bottleneck at scale\n• Context loss for\n  domain-specific needs"]
+
+    FEDERATED --> F_DETAIL["Structure:\n• Platform council\n  (representatives from\n  each BU platform team)\n• Shared: security policy,\n  golden path baseline,\n  core tooling choices\n• Federated: BU-specific\n  extensions, portals,\n  domain IaC\n\nRisks:\n• Standards drift\n• Duplication of effort\n• Coordination overhead"]
+
+    HYBRID --> H_DETAIL["Structure:\n• Central core team owns\n  baseline and security\n• Product teams have\n  embedded platform engineers\n• Platform guild for\n  knowledge sharing\n\nRisks:\n• Embedded engineers\n  get captured by\n  product team priorities"]
+
+    style CENTRALISED fill:#27AE60,color:#fff
+    style FEDERATED fill:#E67E22,color:#fff
+    style HYBRID fill:#2980B9,color:#fff

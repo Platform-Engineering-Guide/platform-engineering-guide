@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant Dev as Developer
+    participant Portal as Backstage Portal
+    participant Template as Software Template<br/>(Scaffolder)
+    participant GitHub as GitHub API
+    participant CrossplaneAPI as Crossplane API<br/>(Kubernetes CR)
+    participant AWS as AWS (via Provider)
+    participant ArgoCD as Argo CD API
+
+    Dev->>Portal: "Create new service" — fill template form
+    Portal->>Template: Execute scaffolder action
+    Template->>GitHub: Create repo from skeleton
+    Template->>GitHub: Create initial PR (app code + Helm chart)
+    Template->>CrossplaneAPI: Apply XRD claim (e.g. XPostgresDatabase)
+    CrossplaneAPI->>AWS: Provision RDS instance via provider-aws
+    AWS-->>CrossplaneAPI: Resource ready, connection secret written
+    Template->>ArgoCD: Register new Application (App of Apps pattern)
+    ArgoCD->>GitHub: Watch config repo
+    ArgoCD-->>Portal: Sync status reported via Backstage Argo CD plugin
+    Portal-->>Dev: Service live — links to repo, dashboard, docs

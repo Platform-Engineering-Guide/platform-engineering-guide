@@ -1,0 +1,38 @@
+flowchart TD
+    START(["Choose observability\nstrategy"]) --> Q1{"Team size and\nplatform maturity?"}
+
+    Q1 -->|"< 50 engineers\nor early stage"| SMALL["Start with Grafana Cloud\nfree tier or small paid plan\nDo not run your own Mimir/Loki yet\nOps overhead > value at this scale"]
+
+    Q1 -->|"50–200 engineers\ngrowing platform"| Q2{"Engineering capacity\nto operate OSS\nobservability stack?"}
+
+    Q1 -->|"> 200 engineers\nmature platform"| Q3{"Existing investment\nor strong OSS culture?"}
+
+    Q2 -->|"Yes — dedicated\nplatform team"| OSS_MID["Self-hosted Grafana LGTM\nMimir + Loki + Tempo + Grafana\nOn S3 — low storage cost\nHighest flexibility"]
+
+    Q2 -->|"No — small platform\nteam, stretched"| CLOUD_MID["Grafana Cloud\nor Datadog\nPay for managed ops\nFocus team on delivery"]
+
+    Q3 -->|"Yes — OSS preferred"| Q4{"Active series count?"}
+    Q3 -->|"No — budget available\nwant best UX"| COMMERCIAL["Datadog or Honeycomb\nBest-in-class UX\nHighest cost\nVendor lock-in risk"]
+
+    Q4 -->|"< 5M series"| OSS_LARGE["Self-hosted LGTM\nStandard Mimir setup\nS3 object storage\n3-replica ingester"]
+    Q4 -->|"5–50M series"| OSS_SCALE["Self-hosted LGTM\nMimir with zone-aware\nreplication\nVictoriaMetrics as\nalternative for ingest"]
+    Q4 -->|"> 50M series"| HYBRID["Hybrid:\nSelf-hosted for metrics\n(VictoriaMetrics Cluster)\nGrafana Cloud for\nhigh-cardinality traces"]
+
+    SMALL --> REVIEW["Review at 6 months:\nIs cost scaling with value?"]
+    CLOUD_MID --> REVIEW
+    COMMERCIAL --> REVIEW
+    OSS_MID --> HEALTHY(["✅ Proceed — reassess annually"])
+    OSS_LARGE --> HEALTHY
+    OSS_SCALE --> HEALTHY
+    HYBRID --> HEALTHY
+    REVIEW --> REASSESS{Cost growing\nfaster than value?}
+    REASSESS -->|"Yes"| MIGRATE["Evaluate migration to\nself-hosted or hybrid"]
+    REASSESS -->|"No"| HEALTHY
+
+    style SMALL fill:#27AE60,color:#fff
+    style OSS_MID fill:#27AE60,color:#fff
+    style OSS_LARGE fill:#27AE60,color:#fff
+    style OSS_SCALE fill:#27AE60,color:#fff
+    style COMMERCIAL fill:#E74C3C,color:#fff
+    style CLOUD_MID fill:#E67E22,color:#fff
+    style HYBRID fill:#2980B9,color:#fff

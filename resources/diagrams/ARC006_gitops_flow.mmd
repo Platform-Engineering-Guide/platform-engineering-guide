@@ -1,0 +1,28 @@
+flowchart LR
+    subgraph "Application Repo"
+        SRC["Source Code"]
+        CICONF["CI Workflow\n(.github/workflows)"]
+    end
+
+    subgraph "Config Repo (Git as Source of Truth)"
+        ENVDIR["environments/\n  ├── dev/\n  ├── staging/\n  └── production/"]
+        HELMVALS["Helm Values\n/ Kustomize Overlays"]
+    end
+
+    subgraph "Cluster"
+        ARGOCD["Argo CD\nApplication Controller"]
+        NS_DEV["Namespace: dev"]
+        NS_STG["Namespace: staging"]
+        NS_PRD["Namespace: production"]
+    end
+
+    SRC -->|"CI builds & signs image"| OCI["OCI Registry"]
+    OCI -->|"CI updates image tag"| HELMVALS
+    HELMVALS -->|"Argo CD watches"| ARGOCD
+    ARGOCD -->|"Reconciles"| NS_DEV
+    ARGOCD -->|"Reconciles"| NS_STG
+    ARGOCD -->|"Reconciles (with promotion gate)"| NS_PRD
+    ARGOCD -->|"Drift detected → alert"| ALERT["Alertmanager"]
+
+    style ARGOCD fill:#27AE60,color:#fff
+    style OCI fill:#E67E22,color:#fff

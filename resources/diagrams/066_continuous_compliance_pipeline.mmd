@@ -1,0 +1,70 @@
+flowchart TD
+    subgraph PolicyDefinition["Policy Definition (Git-managed)"]
+        direction LR
+        KYVERNO_POL["Kyverno ClusterPolicies\n(K8s admission control)"]
+        OPA_POL["OPA / Rego policies\n(IaC plan-time)"]
+        FALCO_RULES["Falco rules\n(runtime detection)"]
+        BENCH_CONF["kube-bench config\n(CIS benchmark)"]
+    end
+
+    subgraph ContinuousChecks["Continuous Automated Checks"]
+        direction TB
+
+        subgraph Admission["At Admission (real-time)"]
+            KYVERNO_ENF["Kyverno enforces\npolicy at every\nresource create/update"]
+            KYVERNO_REP["PolicyReport CR\ncreated per violation\nin each namespace"]
+        end
+
+        subgraph CIChecks["In CI Pipeline (per PR)"]
+            TRIVY_CI["Trivy — image CVE scan"]
+            SYFT_CI["Syft — SBOM generation"]
+            OPA_CI["Conftest + OPA —\nTerraform plan lint\n(no public S3, no open SGs)"]
+            SEMGREP_CI["Semgrep — SAST\n(secrets, OWASP Top 10)"]
+        end
+
+        subgraph Scheduled["Scheduled (daily/weekly)"]
+            KUBEBENCH["kube-bench CronJob\nCIS Kubernetes Benchmark\nResults → S3"]
+            TRIVY_OP["Trivy Operator\nContinuous cluster scan\nVulnerabilityReport CRs"]
+            RBAC_AUDIT["RBAC export\nClusterRoleBinding dump\nWeekly snapshot → S3"]
+            ESO_AUDIT["ExternalSecret audit\nAll secrets in use\nRotation age check"]
+        end
+    end
+
+    subgraph EvidenceCollection["Evidence Collection & Storage"]
+        S3_EVIDENCE["S3 Bucket: compliance-evidence\n────────────────────\n/kyverno-reports/YYYY-MM-DD/\n/kubebench/YYYY-MM-DD/\n/trivy-reports/YYYY-MM-DD/\n/rbac-snapshots/YYYY-MM-DD/\n/argo-sync-history/\n/git-log-exports/"]
+
+        POLICY_REPORT_AGG["PolicyReport aggregation\n(Kyverno → ClusterPolicyReport\n→ exported to S3 nightly)"]
+
+        AUDIT_LOG_SHIP["K8s audit logs\n→ CloudWatch → S3\nRetention: 1 year (PCI)\n90 days (SOC 2 minimum)"]
+    end
+
+    subgraph DriftDetection["Compliance Drift Detection"]
+        DRIFT_ALERT["Alert on new\npolicy violations:\nPolicyReport count\nincreases → Slack #compliance"]
+        TREND["Weekly compliance\ntrend dashboard\n(Grafana — violation\ncount over time)"]
+    end
+
+    subgraph AuditReadiness["Audit Readiness"]
+        REPORT_GEN["Quarterly compliance\nreport generation\n(automated from S3 evidence)"]
+        AUDITOR["External auditor\naccesses:\n- S3 evidence bucket (read-only)\n- Grafana compliance dashboard\n- Git history (Argo CD + config repo)"]
+        CONTROL_MAP["Control mapping doc\n(Diagram #65 table)\nMaps each control to\nevidence location in S3"]
+    end
+
+    PolicyDefinition --> ContinuousChecks
+    Admission --> POLICY_REPORT_AGG
+    CIChecks --> S3_EVIDENCE
+    Scheduled --> S3_EVIDENCE
+    POLICY_REPORT_AGG --> S3_EVIDENCE
+    AUDIT_LOG_SHIP --> S3_EVIDENCE
+
+    S3_EVIDENCE --> DRIFT_ALERT
+    S3_EVIDENCE --> TREND
+    S3_EVIDENCE --> REPORT_GEN
+    REPORT_GEN --> AUDITOR
+    CONTROL_MAP --> AUDITOR
+
+    style PolicyDefinition fill:#2C3E50,color:#fff
+    style Admission fill:#E74C3C,color:#fff
+    style CIChecks fill:#E67E22,color:#fff
+    style Scheduled fill:#8E44AD,color:#fff
+    style EvidenceCollection fill:#27AE60,color:#fff
+    style AuditReadiness fill:#2980B9,color:#fff

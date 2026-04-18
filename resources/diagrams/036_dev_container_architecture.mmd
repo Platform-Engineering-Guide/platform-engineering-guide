@@ -1,0 +1,61 @@
+flowchart TD
+    subgraph RepoRoot["Repository Root"]
+        DEVCONTAINER_JSON[".devcontainer/\ndevcontainer.json\n────────────────\nimage or build.dockerfile\nfeatures: [...]\npostCreateCommand\ncustomizations.vscode\nforwardPorts\nmounts\nremoteUser"]
+        DOCKERFILE[".devcontainer/\nDockerfile (optional)\nExtends base image\nwith team-specific tools"]
+        WORKSPACE["Source code\n/workspaces/<repo-name>"]
+    end
+
+    subgraph DevcontainerSpec["devcontainer.json — Key Fields"]
+        direction LR
+        IMAGE_FIELD["image:\nBase image from\nMCR or custom registry\nPinned by digest"]
+        FEATURES["features:\nPre-built tool installers\n• ghcr.io/devcontainers/features/go\n• ghcr.io/devcontainers/features/aws-cli\n• ghcr.io/devcontainers/features/kubectl\nComposable — mix and match"]
+        POST_CREATE["postCreateCommand:\nRuns once after container created\nnpm install / go mod download\ngit config / tool setup"]
+        CUSTOMISE["customizations.vscode:\nextensions: [list]\nsettings: {key: value}\nIDE config as code"]
+    end
+
+    subgraph RuntimeEnvironment["Container Runtime"]
+        subgraph Container["Dev Container (running)"]
+            TOOLCHAIN["Pinned toolchain versions:\nGo 1.22 / Node 22 / Python 3.12\nkubectl, helm, argocd CLIs\nAWS CLI, pre-configured"]
+            ENV_VARS["Environment variables:\nfrom devcontainer.json\nor .env file (gitignored)"]
+            WORKSPACE_MOUNT["Workspace mount:\n/workspaces/<repo>\n(host FS bind mount)\nEdits persist on host"]
+            SHELL["Shell config:\nzsh + oh-my-zsh\nalias and completions\nfrom postCreateCommand"]
+        end
+
+        PORT_FWD["Port forwarding:\nforwardPorts: [8080, 9090]\nLocalhost → container"]
+    end
+
+    subgraph IDELayer["IDE Layer"]
+        direction LR
+        VSCODE["VS Code\n(Remote - Containers extension)\nConnects to container\nExtensions run inside container\nTerminal = container shell"]
+        CODESPACES["GitHub Codespaces\nSame devcontainer.json\nContainer runs in cloud\nBrowser or VS Code client"]
+        JETBRAINS["JetBrains IDEs\n(Gateway)\nSame spec — growing support\nRemote dev environment"]
+    end
+
+    subgraph PlatformProvided["Platform-Provided Base Images"]
+        BASE_GO["platform/devcontainer-go:1.22\n────────────────\nGo toolchain\nkubectl + helm\nAWS CLI + IRSA helper\nLinting tools\ngolangci-lint"]
+        BASE_NODE["platform/devcontainer-node:22\n────────────────\nNode + npm\nkubectl + helm\nAWS CLI\neslint config"]
+        BASE_PY["platform/devcontainer-python:3.12\n────────────────\nPython + pip + uv\nkubectl + helm\nAWS CLI\npre-commit"]
+    end
+
+    DEVCONTAINER_JSON --> Container
+    DOCKERFILE --> Container
+    WORKSPACE --> WORKSPACE_MOUNT
+    IMAGE_FIELD --> Container
+    FEATURES --> Container
+    POST_CREATE --> Container
+    CUSTOMISE --> VSCODE
+
+    VSCODE -->|"connects to"| Container
+    CODESPACES -->|"connects to"| Container
+    JETBRAINS -->|"connects to"| Container
+
+    BASE_GO -.->|"referenced by"| IMAGE_FIELD
+    BASE_NODE -.->|"referenced by"| IMAGE_FIELD
+    BASE_PY -.->|"referenced by"| IMAGE_FIELD
+
+    Container --> PORT_FWD
+
+    style RepoRoot fill:#2C3E50,color:#fff
+    style Container fill:#2980B9,color:#fff
+    style IDELayer fill:#27AE60,color:#fff
+    style PlatformProvided fill:#E67E22,color:#fff

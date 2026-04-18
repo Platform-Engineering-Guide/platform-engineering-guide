@@ -1,0 +1,40 @@
+graph TD
+    subgraph Ingress["Ingress Layer"]
+        LB["AWS ALB / GCP LB"]
+        INGRESS["Ingress Controller\n(ingress-nginx / Istio Gateway)"]
+    end
+
+    subgraph Services["Service Mesh (Istio Ambient / Cilium)"]
+        SVC_A["Service A\n(frontend)"]
+        SVC_B["Service B\n(API gateway)"]
+        SVC_C["Service C\n(orders)"]
+        SVC_D["Service D\n(inventory)"]
+        SVC_E["Service E\n(notifications)"]
+    end
+
+    subgraph Data["Data Layer"]
+        PG["PostgreSQL\n(RDS / CloudSQL)"]
+        REDIS["Redis\n(ElastiCache)"]
+        QUEUE["Message Queue\n(SQS / Pub/Sub)"]
+    end
+
+    subgraph External["External"]
+        THIRD["Third-party APIs"]
+        EGRESS["Egress Controller\n(allowlist enforced)"]
+    end
+
+    LB --> INGRESS
+    INGRESS --> SVC_A
+    SVC_A --> SVC_B
+    SVC_B --> SVC_C
+    SVC_B --> SVC_D
+    SVC_C --> PG
+    SVC_C --> QUEUE
+    SVC_D --> PG
+    SVC_D --> REDIS
+    SVC_E --> QUEUE
+    SVC_B --> EGRESS
+    EGRESS --> THIRD
+
+    style LB fill:#2C3E50,color:#fff
+    style SVC_B fill:#2980B9,color:#fff

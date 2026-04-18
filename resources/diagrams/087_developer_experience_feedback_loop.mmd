@@ -1,0 +1,26 @@
+flowchart LR
+    SIGNAL["📡 Signal Collection\n────────────────\nDX Core 4 survey (quarterly)\nPlatform NPS (quarterly)\nSupport ticket themes\nOffice hours pain points\nDORA metrics (continuous)\nBackstage usage analytics"]
+
+    ANALYSE["🔍 Analysis\n────────────────\nPrioritise by:\n• Frequency (how many affected)\n• Severity (how much friction)\n• Feasibility (effort to fix)\nICE score each item\nPresent top 3 to team"]
+
+    PRIORITISE["📋 Prioritise\n────────────────\nAdd to platform backlog\nwith ICE score\nMap to OKRs\nShare roadmap publicly\nAssign to next sprint"]
+
+    BUILD["🔨 Build\n────────────────\nBuild the improvement\nDogfood with platform team\nPilot with 1–2 willing teams\nDocument the change"]
+
+    SHIP["🚀 Ship\n────────────────\nDeploy to all teams\nUpdate TechDocs\nAnnounce in newsletter\nTrack adoption metric"]
+
+    CLOSELOOP["🔁 Close the Loop\n────────────────\n'You said X, we did Y'\nPublish in #platform-updates\nCall out contributing team\nMeasure improvement in\nnext survey cycle"]
+
+    SIGNAL --> ANALYSE
+    ANALYSE --> PRIORITISE
+    PRIORITISE --> BUILD
+    BUILD --> SHIP
+    SHIP --> CLOSELOOP
+    CLOSELOOP -->|"next cycle\n(quarterly)"| SIGNAL
+
+    style SIGNAL fill:#2980B9,color:#fff
+    style ANALYSE fill:#8E44AD,color:#fff
+    style PRIORITISE fill:#E67E22,color:#fff
+    style BUILD fill:#E74C3C,color:#fff
+    style SHIP fill:#27AE60,color:#fff
+    style CLOSELOOP fill:#2C3E50,color:#fff

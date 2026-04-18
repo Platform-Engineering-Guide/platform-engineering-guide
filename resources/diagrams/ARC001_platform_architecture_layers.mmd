@@ -1,0 +1,48 @@
+graph TB
+    subgraph DeveloperLayer["Developer Control Plane"]
+        direction LR
+        PORTAL["Developer Portal\n(Backstage / Port)"]
+        CATALOG["Service Catalogue"]
+        TEMPLATES["Software Templates\n(Scaffolders)"]
+        TECHDOCS["TechDocs"]
+    end
+
+    subgraph DeliveryLayer["Integration & Delivery Plane"]
+        direction LR
+        CI["CI Pipelines\n(GitHub Actions / GitLab CI / Tekton)"]
+        GITOPS["GitOps Controllers\n(Argo CD / Flux)"]
+        REGISTRY["Artefact Registry\n(OCI / Helm)"]
+        PROGDEL["Progressive Delivery\n(Argo Rollouts / Flagger)"]
+    end
+
+    subgraph ObsLayer["Monitoring & Logging Plane"]
+        direction LR
+        METRICS["Metrics\n(Prometheus / Mimir)"]
+        LOGS["Logs\n(Loki / OpenSearch)"]
+        TRACES["Traces\n(Tempo / Jaeger)"]
+        OTEL["OTel Collector"]
+        GRAFANA["Grafana"]
+    end
+
+    subgraph SecLayer["Security & Identity Plane"]
+        direction LR
+        SECRETS["Secrets Manager\n(Vault / ESO)"]
+        AUTHN["Workload Identity\n(SPIFFE/SPIRE / IRSA)"]
+        POLICY["Policy Engine\n(Kyverno / OPA)"]
+        SUPPLY["Supply Chain\n(Sigstore / SBOM)"]
+    end
+
+    subgraph ResourceLayer["Resource Plane"]
+        direction LR
+        K8S["Kubernetes\n(EKS / GKE / AKS)"]
+        IaC["IaC Controller\n(Crossplane / OpenTofu)"]
+        CLOUD["Cloud Provider APIs\n(AWS / GCP / Azure)"]
+        NETWORK["Networking\n(Cilium / Istio Ambient)"]
+    end
+
+    DeveloperLayer --> DeliveryLayer
+    DeliveryLayer --> ObsLayer
+    DeliveryLayer --> SecLayer
+    DeliveryLayer --> ResourceLayer
+    ObsLayer --> ResourceLayer
+    SecLayer --> ResourceLayer

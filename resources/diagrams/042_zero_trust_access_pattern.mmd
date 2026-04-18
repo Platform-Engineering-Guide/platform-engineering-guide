@@ -1,0 +1,58 @@
+flowchart TD
+    subgraph User["User (Engineer / On-Call)"]
+        ENG["Engineer\n(laptop)"]
+        MFA["MFA device\n(TOTP / WebAuthn)"]
+    end
+
+    subgraph ZeroTrustProxy["Zero-Trust Access Proxy (Teleport / Boundary)"]
+        direction TB
+
+        AUTH_SVC["Auth Service\n────────────\nSSO / OIDC integration\nMFA enforcement\nJIT credential issuance\nSession recording"]
+
+        PROXY_K8S["Kubernetes Proxy\n────────────\nIssues short-lived kubeconfig\n(cert valid: 8–24 hours)\nMaps SSO group → K8s RBAC group\nNo static kubeconfig files"]
+
+        PROXY_DB["Database Proxy\n────────────\nIssues short-lived DB credentials\n(postgres user, valid: 1–8 hours)\nAudit query logging\nNo long-lived DB passwords"]
+
+        PROXY_SSH["Node / SSH Proxy\n────────────\nIssues short-lived SSH certs\n(valid: 1–8 hours)\nSession recording\nNo SSH key distribution"]
+
+        PROXY_APP["Application Proxy\n────────────\nWeb-based access to\nGrafana, Argo CD UI,\nKubernetes Dashboard\nSSO-gated, no VPN"]
+
+        AUDIT_LOG["Audit Log\n────────────\nAll sessions recorded:\n• Commands run\n• Queries executed\n• Resources accessed\nImmutable, exportable to SIEM"]
+    end
+
+    subgraph ProtectedResources["Protected Platform Resources"]
+        K8S_API["Kubernetes API\n(production cluster)"]
+        RDS["RDS PostgreSQL\n(production database)"]
+        NODES["EC2 Nodes\n(via SSM or Teleport agent)"]
+        INTERNAL_APPS["Internal Apps\n(Grafana, Argo CD, Backstage)"]
+    end
+
+    subgraph OldModel["❌ Old Model (VPN + static credentials)"]
+        VPN_CLIENT["VPN client\n(all-or-nothing access\nonce inside, full network)"]
+        STATIC_KEYS["Static SSH keys\n(distributed once,\nlive forever)"]
+        SHARED_DB_PW["Shared DB password\nin LastPass / 1Password\n(rotated rarely)"]
+        STATIC_KUBECONFIG["Static kubeconfig\n(cluster-admin token\nin ~/.kube/config)"]
+    end
+
+    ENG -->|"1. SSO login\n(GitHub / Google / Okta)"| AUTH_SVC
+    MFA -->|"2. MFA challenge"| AUTH_SVC
+    AUTH_SVC -->|"3. Authenticated — issue\nshort-lived credentials"| PROXY_K8S
+    AUTH_SVC --> PROXY_DB
+    AUTH_SVC --> PROXY_SSH
+    AUTH_SVC --> PROXY_APP
+
+    PROXY_K8S -->|"kubectl via proxy\ncert valid 8h"| K8S_API
+    PROXY_DB -->|"psql via proxy\ncredentials valid 4h"| RDS
+    PROXY_SSH -->|"ssh via proxy\ncert valid 8h"| NODES
+    PROXY_APP -->|"HTTPS via proxy\nSSO session"| INTERNAL_APPS
+
+    PROXY_K8S --> AUDIT_LOG
+    PROXY_DB --> AUDIT_LOG
+    PROXY_SSH --> AUDIT_LOG
+    PROXY_APP --> AUDIT_LOG
+
+    style ZeroTrustProxy fill:#2980B9,color:#fff
+    style ProtectedResources fill:#27AE60,color:#fff
+    style OldModel fill:#E74C3C,color:#fff
+    style AUTH_SVC fill:#2C3E50,color:#fff
+    style AUDIT_LOG fill:#8E44AD,color:#fff

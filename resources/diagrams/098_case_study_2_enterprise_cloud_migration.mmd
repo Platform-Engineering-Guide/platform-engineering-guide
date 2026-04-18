@@ -1,0 +1,42 @@
+flowchart LR
+    subgraph Start["Starting State (Month 0)"]
+        VM_BASED["1,200 VMs\non VMware vSphere\nManual deployments\nvia Ansible\nOne delivery per fortnight\nLead time: 6 weeks"]
+    end
+
+    subgraph Strategy["Migration Strategy"]
+        STRANGLER["Strangler fig approach:\nNew services → Kubernetes\nExisting services →\nmigrate in waves\nNo big-bang rewrite"]
+    end
+
+    subgraph Wave1["Wave 1 (Months 1–6): Foundation"]
+        EKS_BOOTSTRAP["EKS cluster bootstrapped\nvia Terraform\nArgo CD installed\nGitOps for new services only"]
+        GOLDEN_PATH_1["Golden path defined:\nDocker + Helm + GitHub Actions\nNew services on platform"]
+        BACKSTAGE_1["Backstage MVP:\nService catalogue only\n40 services registered"]
+    end
+
+    subgraph Wave2["Wave 2 (Months 7–12): Observability + Security"]
+        OBS_IMPL["OTel + LGTM deployed\nAll K8s services observable\nSLOs for top 20 services"]
+        SEC_IMPL["Kyverno policies\nCosign signing\nVault for secrets\n(replacing CyberArk)"]
+        FIRST_MIGRATION["First VM migrations:\n50 stateless services\nmigrated to K8s\nAnsible decommissioned"]
+    end
+
+    subgraph Wave3["Wave 3 (Months 13–24): Acceleration"]
+        CROSSPLANE_IMPL["Crossplane XRDs:\nRDS, ElastiCache, SQS\nself-service for teams"]
+        BULK_MIGRATE["Bulk migration:\n400 services migrated\nAutomated migration tooling\n(containerise + Helm chart gen)"]
+        KARPENTER_IMPL["Karpenter: spot strategy\nVM cost: down 60%"]
+    end
+
+    subgraph End["End State (Month 24)"]
+        OUTCOME["450 services on K8s\n750 VMs decommissioned\nDeployment freq: daily\nLead time: 2 days\nCloud cost: −40% vs VMware\nDORA: Medium → High tier"]
+    end
+
+    Start --> Strategy
+    Strategy --> Wave1
+    Wave1 --> Wave2
+    Wave2 --> Wave3
+    Wave3 --> End
+
+    style Start fill:#E74C3C,color:#fff
+    style Wave1 fill:#E67E22,color:#fff
+    style Wave2 fill:#F39C12,color:#000
+    style Wave3 fill:#27AE60,color:#fff
+    style End fill:#2980B9,color:#fff

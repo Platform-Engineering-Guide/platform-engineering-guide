@@ -1,0 +1,20 @@
+flowchart TD
+    START(["Choose a developer portal"]) --> Q1{"Engineering capacity\nto maintain self-hosted\ninfrastructure?"}
+
+    Q1 -->|"Yes — dedicated\nplatform team"| Q2{"Need maximum\ncustomisation and\nextensibility?"}
+    Q1 -->|"No — small team\nor fast start needed"| Q3{"Already on\nAtlassian Cloud\n(Jira / Confluence)?"}
+
+    Q2 -->|"Yes"| BACKSTAGE["Backstage\n(with eyes open on TCO)"]
+    Q2 -->|"No"| PORT["Port\n(self-hosted or SaaS)"]
+
+    Q3 -->|"Yes"| COMPASS["Atlassian Compass\n(reduce vendor surface)"]
+    Q3 -->|"No"| Q4{"Primary need:\nscorecard-driven\nservice maturity?"}
+
+    Q4 -->|"Yes"| CORTEX["Cortex or OpsLevel"]
+    Q4 -->|"No"| PORT2["Port\n(broadest out-of-box\nfeature set)"]
+
+    style BACKSTAGE fill:#2980B9,color:#fff
+    style PORT fill:#27AE60,color:#fff
+    style PORT2 fill:#27AE60,color:#fff
+    style COMPASS fill:#E67E22,color:#fff
+    style CORTEX fill:#8E44AD,color:#fff

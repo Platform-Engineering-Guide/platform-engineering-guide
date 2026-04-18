@@ -1,0 +1,70 @@
+flowchart TD
+    subgraph EventSources["Event Sources"]
+        SYSCALL["System calls\n(execve, open, connect,\nclone, setuid...)\nVia eBPF or kernel module"]
+        K8S_AUDIT["Kubernetes audit log\n(API server events:\nCREATE, DELETE, PATCH\non sensitive resources)"]
+        CONTAINER_META["Container metadata\n(namespace, pod name,\nimage, labels)\nEnriched from K8s API"]
+        NETWORK["Network events\n(connections, DNS queries)\nVia eBPF"]
+    end
+
+    subgraph FalcoEngine["Falco — Rule Engine"]
+        direction TB
+        FALCO_CORE["Falco core\nEvent correlation engine\nSingle-event rules\n(stateless by default)"]
+
+        subgraph FalcoRules["Rule Categories"]
+            RULES_DEFAULT["Default rules:\n• Shell in container\n• Write to /etc\n• Outbound connection from container\n• Privilege escalation\n• Sensitive file access\n(passwd, shadow, ssh keys)"]
+            RULES_CUSTOM["Custom rules:\n• Your specific threat model\n• Baseline then alert on deviation\n• Workload-specific rules\nper namespace"]
+        end
+
+        FALCO_OUTPUTS["Output channels:\n• stdout (syslog)\n• gRPC (falcosidekick)\n• Webhook"]
+    end
+
+    subgraph TetragonEngine["Tetragon — eBPF Enforcement"]
+        direction TB
+        TET_CORE["Tetragon sensor\neBPF programs attached\nto kernel hooks"]
+
+        subgraph TetragonPolicies["TracingPolicies"]
+            TET_EXEC["Process execution tracking:\n• Every execve()\n• Binary path + args\n• Parent process\n• K8s metadata"]
+            TET_FILE["File access tracking:\n• Sensitive paths\n  (/etc/passwd, /proc/keys)\n• Write detection"]
+            TET_NET["Network tracking:\n• Outbound connections\n• Destination IP + port\n• Protocol"]
+            TET_ENFORCE["In-kernel enforcement:\n• SIGKILL on policy match\n• Block syscall\n• Does not wait for userspace"]
+        end
+    end
+
+    subgraph FalcoSidekick["Falcosidekick — Alert Routing"]
+        direction LR
+        FS_SLACK["Slack\n#security-alerts"]
+        FS_PAGERDUTY["PagerDuty\n(P1 critical events)"]
+        FS_SIEM["SIEM\n(Splunk / OpenSearch)\nAll events"]
+        FS_LOKI["Grafana Loki\n(for correlation\nwith metrics/traces)"]
+        FS_WEBHOOK["Webhook\n(custom remediation\nautomation)"]
+    end
+
+    subgraph ThreatExamples["Common Threat Detection Scenarios"]
+        direction LR
+        T1["Crypto miner\nDetected by:\nUnexpected outbound\nconnection to mining pool\n+ high CPU (Pixie/OTel)"]
+        T2["Container escape\nDetected by:\nnsenter or mount\noutside container namespace\n(Tetragon)"]
+        T3["Credential theft\nDetected by:\nRead of /etc/shadow\nor /proc/*/environ\n(Falco + Tetragon)"]
+        T4["Reverse shell\nDetected by:\nShell process with\nstdin/stdout to socket\n(Falco rule)"]
+    end
+
+    SYSCALL --> FalcoEngine
+    SYSCALL --> TetragonEngine
+    K8S_AUDIT --> FalcoEngine
+    CONTAINER_META --> FalcoEngine
+    NETWORK --> FalcoEngine
+    NETWORK --> TetragonEngine
+
+    FalcoEngine --> FALCO_OUTPUTS
+    FALCO_OUTPUTS --> FalcoSidekick
+
+    TET_ENFORCE -->|"block in kernel\n(microseconds)"| ThreatExamples
+    FALCO_OUTPUTS -->|"detect + alert\n(milliseconds)"| ThreatExamples
+
+    FS_SLACK --> FS_PAGERDUTY
+    FS_SIEM --> FS_LOKI
+
+    style EventSources fill:#2C3E50,color:#fff
+    style FalcoEngine fill:#2980B9,color:#fff
+    style TetragonEngine fill:#E74C3C,color:#fff
+    style FalcoSidekick fill:#27AE60,color:#fff
+    style ThreatExamples fill:#922B21,color:#fff

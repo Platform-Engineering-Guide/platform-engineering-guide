@@ -1,0 +1,29 @@
+C4Context
+    title Internal Developer Platform — Component Overview
+
+    Person(dev, "Developer", "Day-to-day platform consumer")
+    Person(pe, "Platform Engineer", "Builds and maintains the IDP")
+    Person(secops, "SecOps / Compliance", "Audits and governs")
+
+    System_Boundary(idp, "Internal Developer Platform") {
+        System(portal, "Developer Portal", "Backstage — service catalogue, templates, TechDocs")
+        System(delivery, "Delivery Platform", "CI/CD, GitOps, progressive delivery")
+        System(obs, "Observability Platform", "Logs, metrics, traces, alerting, SLOs")
+        System(sec, "Security Platform", "Secrets, identity, policy, supply chain")
+        System(infra, "Infrastructure Platform", "Kubernetes, IaC, cloud resource vending")
+    }
+
+    System_Ext(cloud, "Cloud Providers", "AWS / GCP / Azure")
+    System_Ext(vcs, "Version Control", "GitHub / GitLab")
+    System_Ext(ticketing, "Ticketing / ITSM", "Jira / ServiceNow")
+
+    Rel(dev, portal, "Creates services, views docs, checks health")
+    Rel(pe, delivery, "Manages pipelines and release gates")
+    Rel(secops, sec, "Sets policies, audits events")
+    Rel(portal, delivery, "Triggers pipelines")
+    Rel(delivery, infra, "Deploys workloads")
+    Rel(infra, cloud, "Provisions resources")
+    Rel(delivery, vcs, "Reads config and code")
+    Rel(obs, infra, "Scrapes metrics, receives telemetry")
+    Rel(sec, infra, "Enforces policy at admission")
+    Rel(portal, ticketing, "Raises change requests")

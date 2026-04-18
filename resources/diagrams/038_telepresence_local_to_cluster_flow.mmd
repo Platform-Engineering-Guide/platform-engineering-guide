@@ -1,0 +1,42 @@
+sequenceDiagram
+    participant DEV as Developer\n(local machine)
+    participant TP_CLI as Telepresence CLI\n(local daemon)
+    participant TP_AGENT as Traffic Manager\n(cluster pod)
+    participant CLUSTER_SVC as Target Service\n(payments-api in cluster)
+    participant DEPS as Cluster Dependencies\n(RDS, Redis, other services)
+
+    Note over DEV,DEPS: Setup — connect to cluster
+
+    DEV->>TP_CLI: telepresence connect
+    TP_CLI->>TP_AGENT: Establish encrypted tunnel\n(gRPC over HTTPS)
+    TP_AGENT-->>TP_CLI: Connected — cluster DNS\nand subnets routed locally
+
+    Note over DEV,DEPS: Intercept — redirect traffic to local process
+
+    DEV->>TP_CLI: telepresence intercept payments-api\n--port 8080 --env-file .env.telepresence
+    TP_CLI->>TP_AGENT: Install intercept on payments-api\nDeployment — inject traffic agent sidecar
+    TP_AGENT-->>TP_CLI: Intercept active\nEnvironment variables written to .env.telepresence
+    TP_CLI-->>DEV: All traffic to cluster payments-api\nnow routed to localhost:8080
+
+    Note over DEV,DEPS: Development loop — local code, real dependencies
+
+    DEV->>DEV: Run local payments-api\n(with hot reload)\nReads .env.telepresence\n(real DB_HOST, REDIS_HOST etc.)
+
+    CLUSTER_SVC->>TP_AGENT: Incoming request to payments-api
+    TP_AGENT->>TP_CLI: Intercept — forward to local
+    TP_CLI->>DEV: Request arrives at localhost:8080
+
+    DEV->>DEPS: Real database query\n(via cluster DNS tunnel:\npostgres.payments.svc.cluster.local)
+    DEPS-->>DEV: Real data returned
+
+    DEV-->>TP_CLI: Response from local process
+    TP_CLI-->>TP_AGENT: Forward response
+    TP_AGENT-->>CLUSTER_SVC: Response returned to caller
+
+    Note over DEV,DEPS: Teardown
+
+    DEV->>TP_CLI: telepresence leave payments-api
+    TP_CLI->>TP_AGENT: Remove intercept — restore\ntraffic to cluster pod
+    TP_AGENT-->>TP_CLI: Intercept removed
+    DEV->>TP_CLI: telepresence quit
+    TP_CLI->>TP_AGENT: Disconnect tunnel

@@ -1,0 +1,66 @@
+graph LR
+    subgraph DevTools["Developer Tooling"]
+        IDE["VS Code / JetBrains\n+ AI Assistant (Copilot / Cursor)"]
+        DEVCONTAINER["devcontainer / Coder"]
+        TELEPRESENCE["Telepresence"]
+    end
+
+    subgraph SourceControl["Source Control & Review"]
+        GITHUB["GitHub / GitLab"]
+        RENOVATE["Renovate Bot\n(dependency updates)"]
+    end
+
+    subgraph CI["Continuous Integration"]
+        ACTIONS["GitHub Actions / GitLab CI"]
+        TEKTON["Tekton (optional)"]
+        DAGGER["Dagger (portable pipelines)"]
+    end
+
+    subgraph Artefacts["Artefact Management"]
+        ECR["ECR / GAR / ACR\n(OCI Registry)"]
+        HELM["Helm Chart Museum\n/ OCI Helm"]
+        COSIGN["Cosign (signing)"]
+    end
+
+    subgraph CD["Continuous Delivery"]
+        ARGOCD["Argo CD"]
+        FLUX["Flux CD"]
+        ROLLOUTS["Argo Rollouts"]
+    end
+
+    subgraph IaC["Infrastructure as Code"]
+        CROSSPLANE["Crossplane"]
+        OPENTOFU["OpenTofu / Terraform"]
+        PULUMI["Pulumi"]
+    end
+
+    subgraph Platform["Platform Services"]
+        BACKSTAGE["Backstage"]
+        VAULT["Vault / OpenBao"]
+        ESO["External Secrets Operator"]
+        KYVERNO["Kyverno"]
+        OPENCOST["OpenCost"]
+    end
+
+    subgraph Observability["Observability"]
+        OTEL["OTel Collector"]
+        GRAFANA["Grafana LGTM"]
+        DATADOG["Datadog (optional)"]
+    end
+
+    IDE --> GITHUB
+    DEVCONTAINER --> TELEPRESENCE
+    GITHUB --> ACTIONS
+    ACTIONS --> ECR
+    ECR --> COSIGN
+    COSIGN --> ARGOCD
+    ARGOCD --> CROSSPLANE
+    CROSSPLANE --> VAULT
+    VAULT --> ESO
+    BACKSTAGE --> ARGOCD
+    BACKSTAGE --> GITHUB
+    BACKSTAGE --> OPENCOST
+    ACTIONS --> OTEL
+    ARGOCD --> GRAFANA
+    KYVERNO --> ARGOCD
+    RENOVATE --> GITHUB

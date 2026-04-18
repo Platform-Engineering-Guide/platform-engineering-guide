@@ -1,0 +1,17 @@
+graph LR
+    L1["Level 1\nAd Hoc\n────────\nManual deploys\nNo standards\nReactive ops"]
+    L2["Level 2\nRepeatable\n────────\nBasic CI/CD\nSome IaC\nShared tooling"]
+    L3["Level 3\nDefined\n────────\nGolden paths\nSelf-service portal\nPolicy as code"]
+    L4["Level 4\nManaged\n────────\nSLO-driven ops\nFull GitOps\nFinOps integrated\nDX programme"]
+    L5["Level 5\nOptimising\n────────\nAI-assisted ops\nPlatform product team\nContinuous improvement\nIndustry benchmark"]
+
+    L1 -->|"Adopt IaC\n+ CI"| L2
+    L2 -->|"Build IDP\n+ golden paths"| L3
+    L3 -->|"Add SLOs\n+ FinOps"| L4
+    L4 -->|"AI augmentation\n+ product discipline"| L5
+
+    style L1 fill:#E74C3C,color:#fff
+    style L2 fill:#E67E22,color:#fff
+    style L3 fill:#F39C12,color:#fff
+    style L4 fill:#27AE60,color:#fff
+    style L5 fill:#2980B9,color:#fff

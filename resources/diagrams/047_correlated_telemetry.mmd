@@ -1,0 +1,43 @@
+sequenceDiagram
+    participant USER as User Request
+    participant SVC_A as Service A\n(payments-api)
+    participant SVC_B as Service B\n(fraud-detection)
+    participant DB as PostgreSQL
+
+    participant LOKI as Grafana Loki\n(logs)
+    participant TEMPO as Grafana Tempo\n(traces)
+    participant MIMIR as Grafana Mimir\n(metrics)
+    participant GRAFANA as Grafana\n(correlation UI)
+
+    Note over USER,GRAFANA: Normal request — all signals correlated
+
+    USER->>SVC_A: POST /payments\nHeaders: traceparent: 00-TRACE_ID-SPAN_A-01
+
+    SVC_A->>SVC_A: Emit structured log:\n{level:info, trace_id:TRACE_ID,\nspan_id:SPAN_A, msg:"payment received",\namount:99.99}
+    SVC_A->>LOKI: Log line (with trace_id)
+
+    SVC_A->>SVC_B: GET /fraud-check\nHeaders: traceparent: 00-TRACE_ID-SPAN_B-01
+    SVC_B->>SVC_B: Emit log:\n{level:info, trace_id:TRACE_ID,\nspan_id:SPAN_B, msg:"fraud score: 0.02"}
+    SVC_B->>LOKI: Log line (with trace_id)
+
+    SVC_A->>DB: SELECT * FROM accounts WHERE id=?
+    DB-->>SVC_A: Row returned (45ms)
+    SVC_A->>SVC_A: Emit trace span:\n{trace_id, span_id, db.query,\ndb.statement, duration_ms: 45}
+
+    SVC_A->>TEMPO: Full trace (TRACE_ID)\nAll spans: A→B→DB
+
+    SVC_A->>MIMIR: Increment metric:\nhttp_requests_total{service="payments",status="200"}\npayment_processing_duration_seconds histogram
+
+    SVC_A-->>USER: 200 OK
+
+    Note over USER,GRAFANA: Alert fires — engineer investigates
+
+    MIMIR->>GRAFANA: Alert: payment_error_rate > 1%\nAnnotation: trace_id=TRACE_ID_ERR
+
+    GRAFANA->>MIMIR: Query metrics: show error spike
+    GRAFANA->>LOKI: Query logs:\n{service="payments"} |= "trace_id=TRACE_ID_ERR"
+    LOKI-->>GRAFANA: Log lines with trace_id
+    GRAFANA->>TEMPO: Fetch trace: TRACE_ID_ERR
+    TEMPO-->>GRAFANA: Full trace — shows\nfraud-detection timeout\nat span B (3001ms)
+
+    Note over GRAFANA,GRAFANA: Engineer sees in one UI:\n1. Metric spike (Mimir)\n2. Log lines with error details (Loki)\n3. Exact trace showing fraud-detection timeout (Tempo)\nRoot cause identified in < 2 minutes

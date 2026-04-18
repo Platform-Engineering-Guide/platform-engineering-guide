@@ -1,0 +1,75 @@
+flowchart TD
+    subgraph ManagementCluster["Management / Hub Cluster"]
+        direction TB
+
+        subgraph CAPI_CTRL["Cluster API Controllers"]
+            CAPI["cluster-api-controller\n(core — manages Machine,\nMachineSet, MachineDeployment)"]
+            INFRA_PROV["Infrastructure Provider\n(CAPA for AWS,\nCAPG for GCP,\nCAPZ for Azure,\nCAPD for Docker/local)"]
+            BOOT_PROV["Bootstrap Provider\n(kubeadm / Talos / k3s)"]
+            CTRL_PROV["Control Plane Provider\n(KubeadmControlPlane\nor Kamaji)"]
+        end
+
+        subgraph FleetCtrl["Rancher Fleet Controllers (if used)"]
+            FLEET["fleet-controller\nManages GitRepo and\nBundle objects\nHandles multi-cluster\nHelmBundle deployments"]
+            FLEET_AGENT["fleet-agent\n(runs in each downstream cluster)"]
+        end
+
+        subgraph KamajiCtrl["Kamaji Control Plane (if used)"]
+            KAMAJI["Kamaji controller\nProvisions lightweight\nK8s control planes\nas pods in mgmt cluster\nEliminating separate VMs\nper control plane"]
+        end
+
+        CAPI_DB["etcd\n(management cluster state)"]
+    end
+
+    subgraph DownstreamClusters["Downstream / Workload Clusters"]
+        direction LR
+
+        subgraph PROD_A["Production Cluster — Region A"]
+            PROD_A_NODE["Worker nodes\n(Karpenter-managed)"]
+            PROD_A_AGENT["Fleet agent\nor Argo CD agent"]
+        end
+
+        subgraph PROD_B["Production Cluster — Region B (DR)"]
+            PROD_B_NODE["Worker nodes"]
+            PROD_B_AGENT["Fleet agent\nor Argo CD agent"]
+        end
+
+        subgraph STAGING["Staging Cluster"]
+            STG_NODE["Worker nodes"]
+        end
+
+        subgraph DEV["Dev / Test Clusters\n(vCluster or dedicated)"]
+            DEV_NODE["Worker nodes\n(spot, preemptible)"]
+        end
+    end
+
+    subgraph WorkloadDelivery["Workload Delivery Layer"]
+        ARGOCD_HUB["Argo CD Hub\n(ApplicationSets targeting\nall registered clusters)"]
+        GITOPS_CONFIG["platform-config repo\n(cluster-specific overlays\nper environment)"]
+    end
+
+    CAPI --> INFRA_PROV
+    CAPI --> BOOT_PROV
+    CAPI --> CTRL_PROV
+    CTRL_PROV -->|"option: Kamaji control planes"| KAMAJI
+
+    CAPI -->|"provisions"| PROD_A
+    CAPI -->|"provisions"| PROD_B
+    CAPI -->|"provisions"| STAGING
+    CAPI -->|"provisions"| DEV
+
+    FLEET -->|"deploys addons"| PROD_A_AGENT
+    FLEET -->|"deploys addons"| PROD_B_AGENT
+
+    ARGOCD_HUB --> GITOPS_CONFIG
+    ARGOCD_HUB -->|"syncs workloads"| PROD_A_AGENT
+    ARGOCD_HUB -->|"syncs workloads"| PROD_B_AGENT
+    ARGOCD_HUB -->|"syncs workloads"| STG_NODE
+    ARGOCD_HUB -->|"syncs workloads"| DEV_NODE
+
+    style ManagementCluster fill:#2C3E50,color:#fff
+    style CAPI_CTRL fill:#2980B9,color:#fff
+    style FleetCtrl fill:#E67E22,color:#fff
+    style KamajiCtrl fill:#8E44AD,color:#fff
+    style DownstreamClusters fill:#f0f0f0,color:#000
+    style WorkloadDelivery fill:#27AE60,color:#fff

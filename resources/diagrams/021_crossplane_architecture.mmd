@@ -1,0 +1,55 @@
+flowchart TD
+    subgraph PlatformTeam["Platform Team Defines (once)"]
+        XRD["CompositeResourceDefinition (XRD)\nDefines the API shape:\nkind: XPostgresDatabase\nwhat parameters are valid"]
+        COMP["Composition\nImplementation:\nhow an XPostgresDatabase\nmaps to real AWS resources"]
+    end
+
+    subgraph Developer["Developer Requests (self-service)"]
+        CLAIM["Claim\nkind: PostgresDatabase\nnamespace: orders-service\nparams: size, version, multiAZ"]
+    end
+
+    subgraph Crossplane["Crossplane Control Plane (in-cluster)"]
+        direction TB
+        XR["Composite Resource (XR)\nauto-created from Claim\ncluster-scoped"]
+        COMP_ENGINE["Composition Engine\nexpands XR into\nManaged Resources"]
+        STATUS["Status & Connection Details\nwritten back to Claim\n+ K8s Secret"]
+    end
+
+    subgraph ManagedResources["Managed Resources (provider-aws)"]
+        direction LR
+        RDS_MR["RDSInstance\n(provider-aws CR)"]
+        SG_MR["SecurityGroup\n(provider-aws CR)"]
+        SUBNET_MR["DBSubnetGroup\n(provider-aws CR)"]
+    end
+
+    subgraph AWS["AWS APIs"]
+        RDS_AWS["Amazon RDS"]
+        VPC_AWS["VPC / Security Groups"]
+    end
+
+    subgraph Secret["Secret Delivery"]
+        K8S_SECRET["Kubernetes Secret\n(connection details:\nhost, port, user, password)"]
+        ESO_NOTE["ESO is NOT needed here —\nCrossplane writes the secret\ndirectly into the namespace"]
+    end
+
+    XRD -->|"defines schema for"| COMP
+    XRD -->|"defines schema for"| CLAIM
+    CLAIM -->|"creates"| XR
+    COMP -->|"tells engine how to expand"| COMP_ENGINE
+    XR --> COMP_ENGINE
+    COMP_ENGINE -->|"creates"| RDS_MR
+    COMP_ENGINE -->|"creates"| SG_MR
+    COMP_ENGINE -->|"creates"| SUBNET_MR
+    RDS_MR -->|"provider-aws reconciles"| RDS_AWS
+    SG_MR -->|"provider-aws reconciles"| VPC_AWS
+    SUBNET_MR -->|"provider-aws reconciles"| VPC_AWS
+    RDS_AWS -->|"resource ready"| STATUS
+    STATUS -->|"writes"| K8S_SECRET
+    K8S_SECRET --> ESO_NOTE
+
+    style PlatformTeam fill:#2C3E50,color:#fff
+    style Developer fill:#27AE60,color:#fff
+    style Crossplane fill:#2980B9,color:#fff
+    style ManagedResources fill:#8E44AD,color:#fff
+    style AWS fill:#FF9900,color:#000
+    style Secret fill:#E67E22,color:#fff

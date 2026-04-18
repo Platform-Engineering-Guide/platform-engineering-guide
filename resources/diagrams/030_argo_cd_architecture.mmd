@@ -1,0 +1,65 @@
+flowchart TD
+    subgraph External["External"]
+        GITREPO["Git Repository\n(GitHub / GitLab / Gitea)"]
+        HELMREPO["Helm / OCI\nChart Registry"]
+        CLUSTERS["Target Kubernetes\nClusters (1..n)"]
+        USERS["Users (CLI / UI)\n+ CI Systems"]
+        DEX_EXT["Identity Provider\n(SSO: GitHub, OIDC, SAML)"]
+    end
+
+    subgraph ArgoCDNamespace["argocd namespace"]
+        direction TB
+
+        subgraph CoreComponents["Core Components"]
+            API_SERVER["argocd-server\n─────────────\n• REST + gRPC API\n• Web UI serving\n• Auth entry point\n• CLI target"]
+
+            APP_CTRL["application-controller\n─────────────\n• Core reconciliation loop\n• Compares live vs desired\n• Triggers sync operations\n• Emits health status\n• Runs 1 per cluster shard"]
+
+            REPO_SERVER["repo-server\n─────────────\n• Clones Git repos\n• Renders manifests\n  (Helm, Kustomize, plain YAML)\n• Caches rendered output\n• Verifies GPG signatures"]
+        end
+
+        subgraph SupportComponents["Support Components"]
+            DEX["dex\n─────────────\n• OIDC provider\n• Proxies to external IdP\n• Issues Argo CD tokens"]
+
+            REDIS["redis\n─────────────\n• API server cache\n• Controller state cache\n• Pub/sub for live updates\n• Session storage"]
+
+            NOTIF["notifications-controller\n─────────────\n• Slack / email / webhook\n• Triggered by app events\n• Template-based messages"]
+
+            IMAGE_UPDATER["image-updater\n─────────────\n• Polls image registries\n• Writes updated tags\n  back to Git\n• Optional component"]
+        end
+
+        subgraph ApplicationModel["Application Model"]
+            APP["Application CR\n─────────────\n• source: Git path\n• destination: cluster/ns\n• syncPolicy: auto/manual\n• health status"]
+
+            APPSET["ApplicationSet CR\n─────────────\n• Generates N Applications\n• Generators: cluster, git,\n  matrix, list, SCM provider\n• Multi-cluster deployments"]
+        end
+    end
+
+    USERS -->|"HTTPS"| API_SERVER
+    DEX_EXT -->|"OIDC callback"| DEX
+    DEX -->|"token exchange"| API_SERVER
+    API_SERVER --> REDIS
+    API_SERVER --> REPO_SERVER
+    API_SERVER --> APP_CTRL
+
+    GITREPO -->|"git clone / fetch"| REPO_SERVER
+    HELMREPO -->|"helm pull"| REPO_SERVER
+    REPO_SERVER --> REDIS
+
+    APP_CTRL -->|"reads desired state"| REPO_SERVER
+    APP_CTRL -->|"queries live state"| CLUSTERS
+    APP_CTRL -->|"applies manifests"| CLUSTERS
+    APP_CTRL --> REDIS
+
+    APPSET -->|"generates"| APP
+    APP -->|"managed by"| APP_CTRL
+
+    NOTIF -->|"watches"| APP_CTRL
+    IMAGE_UPDATER -->|"polls"| HELMREPO
+    IMAGE_UPDATER -->|"commits to"| GITREPO
+
+    style CoreComponents fill:#2980B9,color:#fff
+    style SupportComponents fill:#27AE60,color:#fff
+    style ApplicationModel fill:#8E44AD,color:#fff
+    style ArgoCDNamespace fill:#2C3E50,color:#fff
+    style External fill:#f0f0f0,color:#000

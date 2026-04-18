@@ -1,0 +1,38 @@
+flowchart LR
+    subgraph AgentRuntime["AI Agent Runtime"]
+        AGENT["AI Agent\n(LLM + Tool Use)"]
+        MCP_CLIENT["MCP Client\n(Model Context Protocol)"]
+    end
+
+    subgraph MCPLayer["MCP Server Layer (Platform APIs)"]
+        MCP_K8S["MCP Server:\nKubernetes\n(read-only by default)"]
+        MCP_OBSERV["MCP Server:\nObservability\n(Grafana / Prometheus)"]
+        MCP_INCIDENTS["MCP Server:\nIncident Management\n(PagerDuty / Opsgenie)"]
+        MCP_SECRETS["MCP Server:\nSecrets (read-only,\napproval-gated writes)"]
+        MCP_IaC["MCP Server:\nIaC Plan Preview\n(no auto-apply)"]
+    end
+
+    subgraph Guardrails["Platform Guardrails"]
+        AUTHZ["AuthZ Layer\n(RBAC — least privilege)"]
+        AUDIT["Audit Log\n(all agent actions)"]
+        APPROVAL["Approval Gate\n(human-in-the-loop\nfor write operations)"]
+        RATELIMIT["Rate Limiting\n(prevent runaway agents)"]
+    end
+
+    AGENT --> MCP_CLIENT
+    MCP_CLIENT --> MCP_K8S
+    MCP_CLIENT --> MCP_OBSERV
+    MCP_CLIENT --> MCP_INCIDENTS
+    MCP_CLIENT --> MCP_SECRETS
+    MCP_CLIENT --> MCP_IaC
+
+    MCP_K8S --> AUTHZ
+    MCP_OBSERV --> AUTHZ
+    MCP_SECRETS --> AUTHZ
+    MCP_IaC --> APPROVAL
+    AUTHZ --> AUDIT
+    APPROVAL --> AUDIT
+
+    style AGENT fill:#8E44AD,color:#fff
+    style APPROVAL fill:#E74C3C,color:#fff
+    style AUDIT fill:#2C3E50,color:#fff

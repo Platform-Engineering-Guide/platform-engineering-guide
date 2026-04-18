@@ -1,0 +1,15 @@
+flowchart LR
+    DEV["Developer"] -->|"1. Use template"| PORTAL["Developer Portal"]
+    PORTAL -->|"2. Scaffold repo + IaC"| REPO["Git Repository"]
+    REPO -->|"3. Push code"| CI["CI Pipeline\n(GitHub Actions)"]
+    CI -->|"4. Build & test"| ARTEFACT["OCI Image\n(signed via Cosign)"]
+    CI -->|"5. Update manifests"| GITREPO["Config Git Repo"]
+    GITREPO -->|"6. Detect drift"| ARGO["Argo CD"]
+    ARGO -->|"7. Sync"| CLUSTER["Kubernetes Cluster"]
+    CLUSTER -->|"8. Emit telemetry"| OTEL["OTel Collector"]
+    OTEL --> GRAFANA["Grafana\n(LGTM Stack)"]
+
+    style PORTAL fill:#4A90D9,color:#fff
+    style CI fill:#E67E22,color:#fff
+    style ARGO fill:#27AE60,color:#fff
+    style GRAFANA fill:#8E44AD,color:#fff

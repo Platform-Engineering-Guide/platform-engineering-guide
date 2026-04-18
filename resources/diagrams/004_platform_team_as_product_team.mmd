@@ -1,0 +1,56 @@
+flowchart TD
+    subgraph External["What a Product Team Looks Like"]
+        direction LR
+        PM_EXT["Product Manager\nDefines roadmap\nPrioritises backlog\nOwns user research"]
+        ENG_EXT["Engineers\nBuild the product\n2–6 person team"]
+        UX_EXT["Designer / UX\nUser journeys\nPortal usability"]
+        PM_EXT --- ENG_EXT --- UX_EXT
+    end
+
+    subgraph PlatformTeam["Platform Team — Same Structure, Internal Product"]
+        direction TB
+
+        subgraph Roles["Team Composition"]
+            PM["Platform PM\nPrioritises based on\ndeveloper pain surveys,\nOKRs, DORA data"]
+            PE_SENIOR["Senior Platform Engineers\nBuilds and operates IDP\nOwns golden paths"]
+            PE_MID["Platform Engineers\nBuilds features\nSupports onboarding"]
+            DX_ENG["DX Engineer\nPortal, docs, templates\nDeveloper-facing UX"]
+            SEC_CHAMP["Security Champion\n(embedded or enabling)\nShift-left security\nin platform defaults"]
+        end
+
+        subgraph Practices["Product Practices"]
+            BACKLOG["Prioritised backlog\n(ICE-scored developer\npain items)"]
+            ROADMAP["Quarterly roadmap\n(shared with all teams)"]
+            NPS["Developer NPS\n(measured quarterly)"]
+            OFFICE_HRS["Office hours\n(weekly — not a ticket queue)"]
+            CHANGELOG["Platform changelog\n(every release)"]
+        end
+
+        subgraph SLAs["Platform SLAs"]
+            UPTIME["Platform uptime SLO\n(Backstage, Argo CD,\nESO, OTel)"]
+            RESPONSE["Support response SLA\n(P1: 1h, P2: 4h, P3: 24h)"]
+            ONBOARD["Onboarding SLA\n(new service to prod\nin < 2 days)"]
+        end
+    end
+
+    subgraph AntiPatterns["Anti-Patterns — When Platform Teams Fail"]
+        AP1["🚫 Ticket-driven team\nEvery infra change\nrequires a Jira ticket\nto the platform team\n→ Bottleneck, not platform"]
+        AP2["🚫 No roadmap\nReacts to requests\nNo proactive investment\n→ Technical debt accumulates"]
+        AP3["🚫 No user research\nBuilds what engineers\nwant, not what developers need\n→ Low adoption"]
+        AP4["🚫 No SLAs\nPlatform outages\ntreat as best-effort\n→ Distrust from teams"]
+        AP5["🚫 100% on-call coverage\nAll engineers rotated\nthrough ops burden\n→ No capacity to build"]
+    end
+
+    PM --> BACKLOG
+    BACKLOG --> ROADMAP
+    PE_SENIOR --> UPTIME
+    DX_ENG --> OFFICE_HRS
+    DX_ENG --> CHANGELOG
+    NPS --> BACKLOG
+
+    style PlatformTeam fill:#2980B9,color:#fff
+    style Roles fill:#1A5276,color:#fff
+    style Practices fill:#27AE60,color:#fff
+    style SLAs fill:#E67E22,color:#fff
+    style AntiPatterns fill:#E74C3C,color:#fff
+    style External fill:#f0f0f0,color:#000

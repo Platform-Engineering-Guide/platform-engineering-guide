@@ -1,0 +1,58 @@
+flowchart TD
+    subgraph AlertOrigin["Alert Origin — Symptom-Based, Not Cause-Based"]
+        SLO_ALERT["SLO burn rate alert\n(the recommended anchor)\nFires on user-visible impact:\nerror budget consuming too fast\nNot on CPU, memory, or\nindividual pod health"]
+        INFRA_ALERT["Infrastructure alert\n(supplementary)\nNode pressure, disk,\nnetwork anomalies\nRouted to platform team\nnot service teams"]
+        SECURITY_ALERT["Security alert\n(separate channel)\nFalco / Tetragon events\nRouted to security team\nnot on-call rotation"]
+    end
+
+    subgraph SeverityClassification["Severity Classification — Set at Alert Definition Time"]
+        P1_DEF["P1 — Critical\n────────────────\nUser-facing impact now\nSLO burn rate > 14.4×\nRevenue or data at risk\nPage immediately\nResponse: < 5 minutes"]
+        P2_DEF["P2 — High\n────────────────\nDegraded but functional\nSLO burn rate > 6×\nImpact growing\nPage during business hours\nSlack + email off-hours\nResponse: < 30 minutes"]
+        P3_DEF["P3 — Medium\n────────────────\nAnticipated problem\nSLO trending badly\nNo current user impact\nTicket created\nResponse: next business day"]
+        P4_DEF["P4 — Low\n────────────────\nInformational\nCapacity warning\nDrift detection\nNo page, no ticket\nWeekly digest"]
+    end
+
+    subgraph EscalationChain["Escalation Chain Design"]
+        direction TB
+
+        L1["L1 — Service On-Call Engineer\n────────────────\nFirst responder\nOwns the service that fired\nAcknowledge within 5 min (P1)\nTriage and either resolve\nor escalate within 15 min\n\nEnabled by:\n• Runbook link in alert annotation\n• Dashboard link in alert annotation\n• Service context in Backstage"]
+
+        L2["L2 — Platform On-Call Engineer\n────────────────\nEscalated to if:\n• L1 cannot resolve in 15 min\n• Alert is platform-layer (not service)\n• Multiple services affected\n\nEnabled by:\n• Separate PagerDuty schedule\n• Distinct escalation policy\n• Platform runbooks"]
+
+        L3["L3 — Engineering Lead / Manager\n────────────────\nEscalated to if:\n• L2 cannot resolve in 30 min\n• P0 declared\n• Customer communication required\n\nEnabled by:\n• On-call manager schedule\n• Incident commander role activated"]
+
+        EXTERNAL["External Escalation\n────────────────\nAWS Support / GCP Support\nVendor TAM\nSecurity incident response\nTriggered by: L3 decision\nor platform-specific criteria"]
+
+        L1 -->|"unresolved 15 min\nor platform cause"| L2
+        L2 -->|"unresolved 30 min\nor P0 declared"| L3
+        L3 -->|"cloud provider issue\nor security breach"| EXTERNAL
+    end
+
+    subgraph AlertAnnotationDesign["Alert Annotation Design — What Must Be in Every Alert"]
+        ANNOT["Every alert must carry:\n────────────────\nsummary: one sentence — what is broken\ndescription: current value vs threshold\nrunbook: https://runbooks.internal/<service>/<issue>\ndashboard: https://grafana.internal/d/<dashboard-id>\nservice: <service-name> (links to Backstage)\nseverity: critical | warning | info\nteam: <owning-team>\n\nWithout these: the alert is incomplete\nand should not be in the rotation"]
+    end
+
+    subgraph NoiseReduction["Alert Quality — Keeping the Rotation Honest"]
+        direction LR
+        DEDUP["Deduplication\nAlertmanager groups\nrelated alerts:\n• Same service\n• Same time window\nOne page per incident\nnot one per alert rule"]
+        INHIBIT["Inhibition rules\nIf cluster is down:\nsuppress all service alerts\n(the cause silences the symptoms)"]
+        SILENCE["Silences\nScheduled maintenance\nwindows suppress\nknown-noisy alerts\nAudit silences monthly"]
+        REVIEW["Monthly alert review\nFor each alert:\n• % actionable in last 30 days\n• Mean time to acknowledge\n• Silence rate\nRetire or fix any alert\nwith < 80% actionable rate"]
+    end
+
+    AlertOrigin --> SeverityClassification
+    SeverityClassification --> EscalationChain
+    AlertAnnotationDesign -.->|"required for\nevery alert rule"| EscalationChain
+    NoiseReduction -.->|"keeps the chain\nfrom crying wolf"| EscalationChain
+
+    style AlertOrigin fill:#2C3E50,color:#fff
+    style P1_DEF fill:#E74C3C,color:#fff
+    style P2_DEF fill:#E67E22,color:#fff
+    style P3_DEF fill:#F39C12,color:#000
+    style P4_DEF fill:#27AE60,color:#fff
+    style EscalationChain fill:#2980B9,color:#fff
+    style L1 fill:#2980B9,color:#fff
+    style L2 fill:#8E44AD,color:#fff
+    style L3 fill:#2C3E50,color:#fff
+    style AlertAnnotationDesign fill:#27AE60,color:#fff
+    style NoiseReduction fill:#1A5276,color:#fff

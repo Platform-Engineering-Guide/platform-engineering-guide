@@ -1,0 +1,80 @@
+flowchart TD
+    subgraph AgentRuntime["AI Agent Runtime (Untrusted Zone)"]
+        LLM_CORE["LLM Core\n(Claude / GPT-4o / Gemini)\nNon-deterministic output\nCannot be fully trusted\nEven with instructions —\nprompt injection is a real attack"]
+        AGENT_LOGIC["Agent Orchestration\n(LangChain / custom)\nTool call routing\nContext management"]
+        MEM["Agent Memory\n(conversation history\n+ retrieved context)\nAttack surface:\nmalicious content\nin retrieved docs"]
+    end
+
+    subgraph ControlLayer["Platform Control Layer (Enforcement Zone)"]
+        direction TB
+
+        subgraph AuthZ["Authorisation"]
+            RBAC_AGENT["Agent RBAC\nPer-agent identity\n(not per-user)\nLeast privilege:\nonly tools the agent\nactually needs"]
+            SCOPE["Permission Scopes\nRead-only by default\nWrite ops require\nexplicit grant\nNo cluster-admin ever"]
+        end
+
+        subgraph Validation["Input Validation"]
+            SCHEMA["JSON Schema\nvalidation\nMCP inputSchema\nenforced at call time"]
+            SANITISE["Argument sanitisation\nNo shell metacharacters\nNamespace allowlist\nResource name format check"]
+            RATELIMIT["Rate limiting\nMax N tool calls / min\nMax concurrent sessions\nPrevents runaway agents"]
+        end
+
+        subgraph ApprovalGate["Human-in-the-Loop Gate"]
+            CLASSIFY["Write operation\nclassifier\n(read vs write\nvs destructive)"]
+            APPROVAL_QUEUE["Approval queue\n(Slack / web UI)\nTimeout: 15 minutes\nExpired = denied"]
+            APPROVER["Human approver\n(on-call engineer\nor team lead)"]
+        end
+
+        subgraph AuditLayer["Audit and Observability"]
+            AUDIT_LOG["Immutable audit log\nEvery tool call:\n• agent identity\n• tool name + args\n• result summary\n• approval status\n• timestamp + trace ID"]
+            ANOMALY["Anomaly detection\nUnusual call patterns:\n• off-hours write ops\n• high-volume reads\n• denied op patterns"]
+            ALERT_SEC["Security alerts\n→ Slack #security\n→ PagerDuty\nfor anomalies"]
+        end
+    end
+
+    subgraph PlatformAPIs["Platform APIs (Protected Resources)"]
+        K8S_API["Kubernetes API\n(read-only ServiceAccount\nfor agent RBAC group)"]
+        OBSERV_API["Grafana / Prometheus API\n(read-only token)"]
+        INCIDENT_API["PagerDuty API\n(scoped: list + ack only)"]
+        IaC_API["IaC Plan API\n(plan preview only\nnever terraform apply)"]
+    end
+
+    subgraph ThreatModel["Key Threats and Mitigations"]
+        direction LR
+        T1["Prompt Injection\n(malicious content in\nretrieved context tricks\nagent into bad action)\n→ Mitigate: approval gate\nfor all writes; arg sanitisation"]
+        T2["Privilege Escalation\n(agent requests broader\nscope than needed)\n→ Mitigate: per-agent\nleast-privilege RBAC\nnot inherited from user"]
+        T3["Runaway Agent\n(infinite loop / cost spiral)\n→ Mitigate: rate limits\ntimeouts, session caps"]
+        T4["Data Exfiltration\n(agent reads and\nexfiltrates secrets)\n→ Mitigate: secrets\nnever returned in\ntool responses"]
+        T5["Supply Chain\n(malicious MCP server\nor tool definition)\n→ Mitigate: MCP server\ncode reviewed + signed\nno third-party MCP servers"]
+    end
+
+    LLM_CORE --> AGENT_LOGIC
+    MEM --> AGENT_LOGIC
+    AGENT_LOGIC -->|"tool call request"| SCHEMA
+    SCHEMA --> SANITISE
+    SANITISE --> RBAC_AGENT
+    RBAC_AGENT --> SCOPE
+    SCOPE --> CLASSIFY
+    CLASSIFY -->|"read operation"| K8S_API
+    CLASSIFY -->|"read operation"| OBSERV_API
+    CLASSIFY -->|"read operation"| INCIDENT_API
+    CLASSIFY -->|"write operation"| APPROVAL_QUEUE
+    APPROVAL_QUEUE --> APPROVER
+    APPROVER -->|"approved"| K8S_API
+    APPROVER -->|"denied"| AUDIT_LOG
+    CLASSIFY -->|"plan only"| IaC_API
+    RATELIMIT --> CLASSIFY
+    K8S_API --> AUDIT_LOG
+    OBSERV_API --> AUDIT_LOG
+    INCIDENT_API --> AUDIT_LOG
+    AUDIT_LOG --> ANOMALY
+    ANOMALY --> ALERT_SEC
+
+    style AgentRuntime fill:#E74C3C,color:#fff
+    style ControlLayer fill:#2C3E50,color:#fff
+    style AuthZ fill:#2980B9,color:#fff
+    style Validation fill:#E67E22,color:#fff
+    style ApprovalGate fill:#27AE60,color:#fff
+    style AuditLayer fill:#8E44AD,color:#fff
+    style PlatformAPIs fill:#2C3E50,color:#fff
+    style ThreatModel fill:#922B21,color:#fff

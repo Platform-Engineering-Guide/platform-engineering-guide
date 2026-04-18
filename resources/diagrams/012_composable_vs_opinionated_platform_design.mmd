@@ -1,0 +1,13 @@
+flowchart LR
+    COMP["🧩 Fully Composable\n────────────────\nAll tools are optional\nNo golden path enforced\nDevelopers choose everything\n\nExample: raw Kubernetes\n+ optional operator catalogue"]
+
+    MID["⚖ Opinionated with Escape Hatches\n────────────────\nGolden paths are the default\nEscape hatches exist and are documented\nPlatform team owns the defaults\nTeams own exceptions\n\n← Most successful platforms land here"]
+
+    OPIN["🏛 Fully Opinionated\n────────────────\nOne way to do everything\nNo deviation permitted\nPlatform team approves all changes\n\nExample: Heroku, internal PaaS"]
+
+    COMP -->|"adds structure\nand defaults"| MID
+    MID -->|"removes\nall flexibility"| OPIN
+
+    style COMP fill:#E67E22,color:#fff
+    style MID fill:#27AE60,color:#fff
+    style OPIN fill:#E74C3C,color:#fff

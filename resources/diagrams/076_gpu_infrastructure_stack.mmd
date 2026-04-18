@@ -1,0 +1,70 @@
+flowchart TD
+    subgraph Hardware["Physical Hardware Layer"]
+        GPU_HW["NVIDIA GPU\n(A100 / H100 / L40S)\nPCIe or NVLink fabric"]
+        NVME["NVMe Local Storage\n(model weight staging)"]
+        INFINIBAND["InfiniBand / RoCE\n(multi-node training\nhigh-bandwidth fabric)"]
+    end
+
+    subgraph NodeOS["Node Operating System"]
+        DRIVER["NVIDIA Driver\n(kernel module)\nVersion pinned per cluster"]
+        CUDA["CUDA Runtime\n(libcuda.so)\nExposes GPU compute API"]
+        CONTAINERD_GPU["containerd\n+ nvidia-container-runtime\n(hooks GPU into containers)"]
+    end
+
+    subgraph Operator["NVIDIA GPU Operator (Kubernetes)"]
+        direction TB
+        GPU_OP["gpu-operator\nHelm chart — manages all\ncomponents below as DaemonSets"]
+
+        subgraph OperatorComponents["Managed DaemonSets"]
+            DRIVER_DS["nvidia-driver DaemonSet\nInstalls and upgrades driver\nwithout SSH to nodes"]
+            TOOLKIT_DS["nvidia-container-toolkit DaemonSet\nConfigures container runtime hook"]
+            DCGM_DS["dcgm-exporter DaemonSet\nExposes GPU metrics:\n• GPU utilisation %\n• Memory used / free\n• Temperature\n• SM clock speed\n• ECC errors"]
+            DEVICE_PLUGIN["nvidia-device-plugin DaemonSet\nAdvertises GPU resources\nto kube-scheduler:\nnvidia.com/gpu: 4"]
+            MIG_MANAGER["mig-manager DaemonSet\n(A100/H100 only)\nConfigures MIG partitions\nper node label"]
+            VALIDATOR["nvidia-operator-validator\nVerifies stack health\nend-to-end on each node"]
+        end
+    end
+
+    subgraph Partitioning["GPU Partitioning Strategies"]
+        direction LR
+
+        subgraph MIG["MIG — Multi-Instance GPU\n(A100 / H100)"]
+            MIG_DEF["Hard partition at silicon level\nEach instance has dedicated:\n• SM compute\n• L2 cache slice\n• Memory bandwidth\n• DRAM partition\n\nProfiles (A100 80GB):\n1g.10gb — 7 per GPU\n2g.20gb — 3 per GPU\n3g.40gb — 2 per GPU\n7g.80gb — 1 per GPU (whole)"]
+        end
+
+        subgraph TIMESLICE["Time-Slicing"]
+            TS_DEF["Shared GPU via\ntime-multiplexing\nNo memory isolation\nNo fault isolation\n\nBest for:\nDev/test workloads\nSmall inference replicas\nNotebook servers\n\nConfigured via:\nnvidia.com/gpu: 1\nreplica count in ConfigMap"]
+        end
+
+        subgraph VGPU["vGPU (VMware / bare metal)"]
+            VGPU_DEF["Hypervisor-level\nGPU virtualisation\nFull memory isolation\nQoS guarantees\n\nRequires:\nNVIDIA vGPU licence\nKubernetes vGPU operator\nTypically for regulated\nor multi-tenant VMs"]
+        end
+    end
+
+    subgraph K8sScheduling["Kubernetes Scheduling Layer"]
+        RESOURCE_REQ["Pod resource request:\nnvidia.com/gpu: 1\n\nfor MIG:\nnvidia.com/mig-3g.40gb: 1"]
+        NODESELECTOR["Node selector:\nnvidia.com/gpu.product: A100-SXM4-80GB\nnvidia.com/gpu.count: '8'"]
+        TOLERATION["Toleration:\nnvidia.com/gpu: NoSchedule"]
+        KARPENTER_GPU["Karpenter GPU NodePool\nInstance families:\ng5, p4d, p5 (AWS)\na2, a3 (GCP)"]
+    end
+
+    subgraph Observability["GPU Observability"]
+        DCGM_METRICS["DCGM Metrics → OTel Collector\n→ Grafana Mimir"]
+        GPU_DASHBOARD["Grafana Dashboard:\n• Per-node GPU utilisation\n• Per-pod GPU memory\n• Thermal throttling events\n• Cost per GPU-hour by team"]
+        GPU_ALERT["Alerts:\n• GPU utilisation < 20% for 1h\n  (idle GPU — cost waste)\n• Temperature > 85°C\n• ECC errors (hardware fault)\n• OOM on GPU memory"]
+    end
+
+    Hardware --> NodeOS
+    NodeOS --> Operator
+    Operator --> Partitioning
+    Partitioning --> K8sScheduling
+    DCGM_DS --> Observability
+
+    style Hardware fill:#76B900,color:#fff
+    style Operator fill:#2C3E50,color:#fff
+    style OperatorComponents fill:#2980B9,color:#fff
+    style MIG fill:#27AE60,color:#fff
+    style TIMESLICE fill:#E67E22,color:#fff
+    style VGPU fill:#8E44AD,color:#fff
+    style K8sScheduling fill:#2C3E50,color:#fff
+    style Observability fill:#8E44AD,color:#fff

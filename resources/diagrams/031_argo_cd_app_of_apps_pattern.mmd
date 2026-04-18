@@ -1,0 +1,77 @@
+flowchart TD
+    subgraph GitRepo["platform-config Git Repository"]
+        direction LR
+        ROOT_YAML["clusters/production/\nroot-app.yaml"]
+        APPS_DIR["clusters/production/apps/\n├── cert-manager.yaml\n├── external-secrets.yaml\n├── crossplane.yaml\n├── kyverno.yaml\n├── karpenter.yaml\n├── otel-collector.yaml\n├── grafana-lgtm.yaml\n├── opencost.yaml\n├── backstage.yaml\n└── workloads/\n    ├── payments-app.yaml\n    ├── orders-app.yaml\n    └── notifications-app.yaml"]
+    end
+
+    subgraph ArgoCDCluster["Argo CD (argocd namespace)"]
+        ROOT_APP["🌳 platform-root\n(Application)\n────────────────\nSource: clusters/production/apps/\nSelf-managed root\nAuto-sync: enabled"]
+
+        subgraph PlatformApps["Platform Addon Applications (sync-wave 1–3)"]
+            CERT["cert-manager\n(wave: 1)"]
+            ESO["external-secrets\n(wave: 1)"]
+            CROSSPLANE["crossplane\n(wave: 1)"]
+            KYVERNO["kyverno\n(wave: 2)"]
+            KARPENTER["karpenter\n(wave: 2)"]
+            OTEL["otel-collector\n(wave: 3)"]
+            GRAFANA["grafana-lgtm\n(wave: 3)"]
+            OPENCOST["opencost\n(wave: 3)"]
+            BACKSTAGE["backstage\n(wave: 4)"]
+        end
+
+        subgraph WorkloadApps["Workload Applications (sync-wave 5)"]
+            PAYMENTS["payments-service\n(wave: 5)"]
+            ORDERS["orders-service\n(wave: 5)"]
+            NOTIF["notifications-service\n(wave: 5)"]
+        end
+    end
+
+    subgraph Cluster["Kubernetes Cluster"]
+        NS_CERT["namespace: cert-manager"]
+        NS_ESO["namespace: external-secrets"]
+        NS_CROSS["namespace: crossplane-system"]
+        NS_KYV["namespace: kyverno"]
+        NS_KARP["namespace: karpenter"]
+        NS_OBS["namespace: monitoring"]
+        NS_COST["namespace: opencost"]
+        NS_PORTAL["namespace: backstage"]
+        NS_PAY["namespace: payments"]
+        NS_ORD["namespace: orders"]
+        NS_NOT["namespace: notifications"]
+    end
+
+    ROOT_YAML -->|"bootstrapped once\nvia helm install"| ROOT_APP
+    APPS_DIR -->|"watched by"| ROOT_APP
+
+    ROOT_APP -->|"generates"| CERT
+    ROOT_APP -->|"generates"| ESO
+    ROOT_APP -->|"generates"| CROSSPLANE
+    ROOT_APP -->|"generates"| KYVERNO
+    ROOT_APP -->|"generates"| KARPENTER
+    ROOT_APP -->|"generates"| OTEL
+    ROOT_APP -->|"generates"| GRAFANA
+    ROOT_APP -->|"generates"| OPENCOST
+    ROOT_APP -->|"generates"| BACKSTAGE
+    ROOT_APP -->|"generates"| PAYMENTS
+    ROOT_APP -->|"generates"| ORDERS
+    ROOT_APP -->|"generates"| NOTIF
+
+    CERT -->|"syncs to"| NS_CERT
+    ESO -->|"syncs to"| NS_ESO
+    CROSSPLANE -->|"syncs to"| NS_CROSS
+    KYVERNO -->|"syncs to"| NS_KYV
+    KARPENTER -->|"syncs to"| NS_KARP
+    OTEL -->|"syncs to"| NS_OBS
+    GRAFANA -->|"syncs to"| NS_OBS
+    OPENCOST -->|"syncs to"| NS_COST
+    BACKSTAGE -->|"syncs to"| NS_PORTAL
+    PAYMENTS -->|"syncs to"| NS_PAY
+    ORDERS -->|"syncs to"| NS_ORD
+    NOTIF -->|"syncs to"| NS_NOT
+
+    style ROOT_APP fill:#27AE60,color:#fff
+    style PlatformApps fill:#2980B9,color:#fff
+    style WorkloadApps fill:#8E44AD,color:#fff
+    style GitRepo fill:#2C3E50,color:#fff
+    style Cluster fill:#f0f0f0,color:#000

@@ -1,0 +1,37 @@
+graph TD
+    subgraph StreamAligned["Stream-Aligned Teams (Product Engineering)"]
+        SA1["Squad: Payments"]
+        SA2["Squad: User Platform"]
+        SA3["Squad: Data Products"]
+    end
+
+    subgraph PlatformTeam["Platform Team (Internal Product)"]
+        CORE["Core Platform\n(IDP, CI/CD, Kubernetes)"]
+        DX["Developer Experience\n(Portal, Docs, Onboarding)"]
+        SECPLAT["Security Platform\n(Policy, Secrets, Supply Chain)"]
+        FINOPS["FinOps\n(Cost Visibility, Showback)"]
+    end
+
+    subgraph Enabling["Enabling Teams"]
+        SRE["SRE / Reliability Enabling"]
+        SECENABLING["Security Enabling\n(AppSec champions)"]
+        DATA_ENABLING["Data Platform Enabling"]
+    end
+
+    subgraph ComplexSubsystem["Complicated-Subsystem Teams"]
+        ML_TEAM["ML Platform Team"]
+        MESH_TEAM["Service Mesh Team"]
+    end
+
+    SA1 -->|"X-as-a-Service\n(self-service)"| CORE
+    SA2 -->|"X-as-a-Service\n(self-service)"| CORE
+    SA3 -->|"X-as-a-Service\n(self-service)"| CORE
+    SRE -->|"Facilitation\n(temporary)"| SA1
+    SRE -->|"Facilitation\n(temporary)"| SA2
+    SECENABLING -->|"Facilitation"| SA1
+    ML_TEAM -->|"X-as-a-Service"| SA3
+    MESH_TEAM -->|"X-as-a-Service"| CORE
+
+    style CORE fill:#2980B9,color:#fff
+    style DX fill:#27AE60,color:#fff
+    style ML_TEAM fill:#E67E22,color:#fff

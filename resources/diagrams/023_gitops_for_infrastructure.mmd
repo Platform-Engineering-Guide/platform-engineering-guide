@@ -1,0 +1,68 @@
+flowchart TD
+    subgraph GitSource["Git — Infrastructure Source of Truth"]
+        INFRA_REPO["platform-infra repo\n────────────────\nclusters/production/\n  ├── crossplane/\n  │   ├── xr-postgres-orders.yaml\n  │   ├── xr-redis-cache.yaml\n  │   └── xr-s3-assets.yaml\n  ├── kyverno/\n  │   └── policies/\n  ├── karpenter/\n  │   └── nodepools/\n  └── namespaces/"]
+    end
+
+    subgraph ReconcileLoop["Continuous Reconciliation Loop"]
+        direction TB
+
+        ARGOCD_INFRA["Argo CD\nInfrastructure Application\n(watches platform-infra repo)"]
+
+        DESIRED["Desired State\n(from Git)"]
+        ACTUAL["Actual State\n(from K8s API + cloud)"]
+        COMPARE["Compare\ndesired vs actual"]
+
+        DRIFT{Drift\ndetected?}
+
+        RECONCILE["Reconcile\napply manifests\nto restore desired state"]
+        ALERT_DRIFT["Alert:\nDrift detected\n(if auto-heal disabled)"]
+        HEALTHY["✅ In sync\nno action"]
+    end
+
+    subgraph DriftScenarios["Common Drift Scenarios"]
+        direction LR
+        D1["Engineer runs\nkubectl edit directly\n→ Argo CD detects and reverts"]
+        D2["Cloud resource\nmodified in console\n→ Crossplane detects and reverts"]
+        D3["Node pool config\nchanged manually\n→ Karpenter NodePool CR reverted"]
+        D4["Policy weakened\nwithout PR\n→ Kyverno policy reverted"]
+    end
+
+    subgraph ChangeProcess["Correct Change Process"]
+        direction LR
+        PR["Open PR in\nplatform-infra repo"]
+        REVIEW["Peer review\n(platform team)"]
+        PLAN["Preview change:\nargo diff / crossplane trace"]
+        MERGE["Merge to main"]
+        AUTO_APPLY["Argo CD applies\nautomatically"]
+    end
+
+    subgraph DriftDetectionTools["Drift Detection Tooling"]
+        direction LR
+        ARGO_SYNC["Argo CD sync status\n(OutOfSync = drift)"]
+        CROSSPLANE_STATUS["kubectl get managed\n(synced: False = drift)"]
+        KUBE_BENCH_CI["kube-bench in CI\n(config compliance)"]
+    end
+
+    INFRA_REPO -->|"watched by"| ARGOCD_INFRA
+    ARGOCD_INFRA --> DESIRED
+    ARGOCD_INFRA --> ACTUAL
+    DESIRED --> COMPARE
+    ACTUAL --> COMPARE
+    COMPARE --> DRIFT
+    DRIFT -->|"Yes + auto-heal enabled"| RECONCILE
+    DRIFT -->|"Yes + auto-heal disabled"| ALERT_DRIFT
+    DRIFT -->|"No"| HEALTHY
+    RECONCILE --> HEALTHY
+
+    DriftScenarios -.->|"triggers"| DRIFT
+    ChangeProcess -->|"updates"| INFRA_REPO
+    DriftDetectionTools -.->|"surfaces"| DRIFT
+
+    style GitSource fill:#2C3E50,color:#fff
+    style ReconcileLoop fill:#2980B9,color:#fff
+    style DRIFT fill:#E74C3C,color:#fff
+    style RECONCILE fill:#27AE60,color:#fff
+    style HEALTHY fill:#27AE60,color:#fff
+    style ALERT_DRIFT fill:#E67E22,color:#fff
+    style DriftScenarios fill:#922B21,color:#fff
+    style ChangeProcess fill:#27AE60,color:#fff

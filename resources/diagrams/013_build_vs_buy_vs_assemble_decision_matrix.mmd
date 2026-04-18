@@ -1,0 +1,26 @@
+flowchart TD
+    START(["Platform capability\nneeded"]) --> Q1{"Is this a\ndifferentiating\ncapability?"}
+
+    Q1 -->|"Yes — core to\nyour platform's value"| Q2{"Do you have\nengineering capacity\nto maintain it long-term?"}
+    Q1 -->|"No — commodity\ncapability"| Q3{"Does a CNCF-grade\nor commercial solution\nexist?"}
+
+    Q2 -->|"Yes"| BUILD["BUILD\nCustom implementation"]
+    Q2 -->|"No"| Q3
+
+    Q3 -->|"Yes — open source\nwith broad adoption"| Q4{"Does it require\nsignificant integration\nor configuration?"}
+    Q3 -->|"Yes — commercial\nsolution fits"| BUY["BUY\nCommercial SaaS or\nlicensed product"]
+    Q3 -->|"No good solution\nexists"| BUILD
+
+    Q4 -->|"Yes — needs\nglue and config"| ASSEMBLE["ASSEMBLE\nCompose OSS tools\nwith platform automation"]
+    Q4 -->|"No — works\nout of the box"| BUY
+
+    BUILD --> BUILD_NOTE["Examples:\n• Custom Backstage plugins\n• Bespoke cost attribution logic\n• Internal golden path templates"]
+    BUY --> BUY_NOTE["Examples:\n• Datadog (observability at scale)\n• Snyk (security scanning)\n• PagerDuty (on-call)"]
+    ASSEMBLE --> ASSEMBLE_NOTE["Examples:\n• Backstage + Argo CD + Crossplane\n• Prometheus + Loki + Tempo + Grafana\n• ESO + Vault + Kyverno"]
+
+    style BUILD fill:#E74C3C,color:#fff
+    style BUY fill:#27AE60,color:#fff
+    style ASSEMBLE fill:#2980B9,color:#fff
+    style BUILD_NOTE fill:#FADBD8,color:#000
+    style BUY_NOTE fill:#D5F5E3,color:#000
+    style ASSEMBLE_NOTE fill:#D6EAF8,color:#000

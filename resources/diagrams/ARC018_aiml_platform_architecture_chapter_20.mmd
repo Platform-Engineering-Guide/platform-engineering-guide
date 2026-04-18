@@ -1,0 +1,53 @@
+flowchart TD
+    subgraph DataLayer["Data Layer"]
+        ICEBERG["Apache Iceberg\n(table format)"]
+        SPARK["Spark on Kubernetes\n(batch processing)"]
+        FLINK["Apache Flink\n(stream processing)"]
+    end
+
+    subgraph Training["Training Platform"]
+        KUBEFLOW["Kubeflow Pipelines\n(orchestration)"]
+        MLFLOW["MLflow\n(experiment tracking)"]
+        GPU["GPU Nodes\n(NVIDIA GPU Operator\n+ MIG / time-slicing)"]
+        RAY["Ray\n(distributed training)"]
+    end
+
+    subgraph Serving["Model Serving"]
+        KSERVE["KServe\n(standardised inference)"]
+        VLLM["vLLM\n(LLM serving, token streaming)"]
+        RAYSERVE["Ray Serve\n(complex pipelines)"]
+    end
+
+    subgraph LLMOps["LLMOps Layer"]
+        PROMPT["Prompt Management\n(version-controlled templates)"]
+        EVAL["Evaluation Pipelines\n(regression + safety checks)"]
+        GUARDRAILS["Guardrails\n(input/output filtering)"]
+        OBS_LLM["LLM Observability\n(latency, tokens, cost per call)"]
+    end
+
+    subgraph Governance["Governance"]
+        MODELREG["Model Registry\n(MLflow / custom OCI)"]
+        LINEAGE["Data Lineage\n(OpenLineage / Marquez)"]
+    end
+
+    ICEBERG --> SPARK
+    SPARK --> KUBEFLOW
+    FLINK --> KUBEFLOW
+    KUBEFLOW --> GPU
+    KUBEFLOW --> RAY
+    RAY --> MLFLOW
+    GPU --> MLFLOW
+    MLFLOW --> MODELREG
+    MODELREG --> KSERVE
+    MODELREG --> VLLM
+    MODELREG --> RAYSERVE
+    KSERVE --> GUARDRAILS
+    VLLM --> GUARDRAILS
+    GUARDRAILS --> EVAL
+    GUARDRAILS --> OBS_LLM
+    PROMPT --> VLLM
+    LINEAGE --> MODELREG
+
+    style GPU fill:#76B900,color:#fff
+    style VLLM fill:#E67E22,color:#fff
+    style GUARDRAILS fill:#E74C3C,color:#fff

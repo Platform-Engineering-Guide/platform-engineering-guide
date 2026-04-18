@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant Dev as Developer
+    participant Devenv as Dev Environment<br/>(devcontainer / Coder)
+    participant LocalK8s as Local / Remote Cluster<br/>(Telepresence)
+    participant Git as Git (GitHub / GitLab)
+    participant CI as CI Pipeline
+    participant CD as Argo CD
+    participant Prod as Production Cluster
+
+    Dev->>Devenv: Write code in standardised devcontainer
+    Dev->>LocalK8s: Test against live cluster via Telepresence
+    Dev->>Git: Raise Pull Request
+    Git->>CI: Trigger CI pipeline
+    CI->>CI: Lint, test, scan, build, sign
+    CI->>Git: Update image tag in config repo
+    CD->>Git: Detect manifest change
+    CD->>Prod: Sync and deploy (canary → full rollout)
+    Prod-->>Dev: Observability dashboards / alerts

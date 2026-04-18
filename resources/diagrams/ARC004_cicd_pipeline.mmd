@@ -1,0 +1,20 @@
+flowchart TD
+    PUSH["git push / PR"] --> LINT["Lint & Static Analysis\n(golangci-lint / eslint / hadolint)"]
+    LINT --> UNIT["Unit Tests"]
+    UNIT --> SAST["SAST Scan\n(Semgrep / Snyk Code)"]
+    SAST --> BUILD["Container Build\n(Buildkit / ko)"]
+    BUILD --> SBOM["SBOM Generation\n(Syft)"]
+    SBOM --> SCAN["Image Vulnerability Scan\n(Grype / Trivy)"]
+    SCAN --> SIGN["Image Sign\n(Cosign / Sigstore)"]
+    SIGN --> PUSH_REG["Push to OCI Registry"]
+    PUSH_REG --> ATTEST["Attach Provenance Attestation\n(SLSA Level 2+)"]
+    ATTEST --> UPDATE_MANIFEST["Update Image Tag in\nConfig Repo (PR/commit)"]
+    UPDATE_MANIFEST --> GITOPS["GitOps Controller picks up\n(Argo CD / Flux)"]
+
+    FAIL_LINT["❌ Fail"] -.-> LINT
+    FAIL_UNIT["❌ Fail"] -.-> UNIT
+    FAIL_SCAN["❌ Block"] -.-> SCAN
+
+    style PUSH fill:#2C3E50,color:#fff
+    style SIGN fill:#27AE60,color:#fff
+    style GITOPS fill:#2980B9,color:#fff

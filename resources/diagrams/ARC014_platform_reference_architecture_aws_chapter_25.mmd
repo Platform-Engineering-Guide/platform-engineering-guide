@@ -1,0 +1,81 @@
+flowchart TD
+    subgraph Dev["Developer Experience Layer"]
+        BACKSTAGE["Backstage Portal\n(EKS / ALB)"]
+        PORTAL_PLUGINS["Plugins: Argo CD,\nCost, TechDocs, Catalog"]
+    end
+
+    subgraph Delivery["Delivery Platform"]
+        GHA["GitHub Actions\n(CI)"]
+        ARGOCD["Argo CD\n(GitOps / multi-cluster)"]
+        ROLLOUTS["Argo Rollouts\n(canary / blue-green)"]
+    end
+
+    subgraph Infra["Infrastructure Platform"]
+        EKS["Amazon EKS\n(managed Kubernetes)"]
+        CROSSPLANE["Crossplane\n(provider-aws)"]
+        KARPENTER["Karpenter\n(node autoscaler)"]
+        CLUSTER_AUTOSCALER["Cluster Autoscaler\n(fallback)"]
+    end
+
+    subgraph Security["Security Platform"]
+        ESO["External Secrets Operator\n(pulls from AWS Secrets Manager)"]
+        SECRETS_MGR["AWS Secrets Manager\n+ Parameter Store"]
+        KYVERNO["Kyverno\n(policy as code)"]
+        IRSA["IRSA\n(workload identity)"]
+        SIGSTORE["Cosign / Sigstore\n(image verification)"]
+    end
+
+    subgraph Obs["Observability Platform"]
+        OTEL_COLL["OTel Collector\n(DaemonSet + Gateway)"]
+        MIMIR["Grafana Mimir\n(S3-backed)"]
+        LOKI["Grafana Loki\n(S3-backed)"]
+        TEMPO["Grafana Tempo\n(S3-backed)"]
+        GRAFANA["Grafana\n(dashboards + SLOs)"]
+        ALERTMGR["Alertmanager\n→ PagerDuty"]
+    end
+
+    subgraph Cost["FinOps"]
+        OPENCOST["OpenCost\n(per-namespace cost allocation)"]
+        CUR["AWS Cost & Usage Report\n(Kubecost Enterprise optional)"]
+    end
+
+    subgraph CloudResources["AWS Cloud Resources (Crossplane-provisioned)"]
+        RDS["RDS PostgreSQL"]
+        ELASTICACHE["ElastiCache Redis"]
+        S3["S3 Buckets"]
+        SQS["SQS Queues"]
+        ECR["ECR\n(OCI Registry)"]
+    end
+
+    BACKSTAGE --> ARGOCD
+    BACKSTAGE --> OPENCOST
+    GHA --> ECR
+    GHA --> ARGOCD
+    ARGOCD --> EKS
+    ARGOCD --> CROSSPLANE
+    CROSSPLANE --> RDS
+    CROSSPLANE --> ELASTICACHE
+    CROSSPLANE --> S3
+    CROSSPLANE --> SQS
+    KARPENTER --> EKS
+    ESO --> SECRETS_MGR
+    KYVERNO --> EKS
+    IRSA --> EKS
+    SIGSTORE --> KYVERNO
+    EKS --> OTEL_COLL
+    OTEL_COLL --> MIMIR
+    OTEL_COLL --> LOKI
+    OTEL_COLL --> TEMPO
+    MIMIR --> GRAFANA
+    LOKI --> GRAFANA
+    TEMPO --> GRAFANA
+    GRAFANA --> ALERTMGR
+    EKS --> OPENCOST
+    OPENCOST --> CUR
+    ROLLOUTS --> EKS
+
+    style BACKSTAGE fill:#4A90D9,color:#fff
+    style ARGOCD fill:#27AE60,color:#fff
+    style EKS fill:#FF9900,color:#000
+    style GRAFANA fill:#8E44AD,color:#fff
+    style OPENCOST fill:#E67E22,color:#fff

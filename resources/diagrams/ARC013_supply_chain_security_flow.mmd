@@ -1,0 +1,20 @@
+flowchart TD
+    DEV["Developer commits code"] --> CI["CI Pipeline triggered"]
+    CI --> SAST["SAST (Semgrep)"]
+    CI --> SCA["Dependency Scan\n(Grype / Snyk)"]
+    CI --> BUILD["Container Build\n(Buildkit)"]
+    BUILD --> SBOM_GEN["SBOM Generation\n(Syft → SPDX / CycloneDX)"]
+    BUILD --> IMAGE_SCAN["Image Scan\n(Trivy / Grype)"]
+    IMAGE_SCAN -->|"Vulnerabilities above threshold"| BLOCK["❌ Block Pipeline"]
+    IMAGE_SCAN -->|"Pass"| SIGN["Sign Image\n(Cosign + Rekor transparency log)"]
+    SIGN --> ATTEST["Attach SLSA Provenance\nAttestation"]
+    ATTEST --> PUSH["Push to OCI Registry"]
+    PUSH --> DEPLOY["Argo CD syncs to cluster"]
+    DEPLOY --> VERIFY["Kyverno ClusterPolicy\nverifies signature before admission"]
+    VERIFY -->|"Signature invalid"| DENY["❌ Deny Pod creation"]
+    VERIFY -->|"Signature valid"| ADMIT["✅ Admit workload"]
+
+    style SIGN fill:#27AE60,color:#fff
+    style BLOCK fill:#E74C3C,color:#fff
+    style DENY fill:#E74C3C,color:#fff
+    style ADMIT fill:#27AE60,color:#fff

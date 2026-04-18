@@ -1,0 +1,82 @@
+flowchart TD
+    subgraph Browser["Browser (Developer)"]
+        UI["React Frontend\n(core UI framework)"]
+        PLUGIN_UI["Frontend Plugins\n(React components)"]
+    end
+
+    subgraph BackstageCore["Backstage Backend"]
+        direction TB
+
+        subgraph APILayer["API Layer"]
+            ROUTER["Express Router\n(HTTP/REST)"]
+            AUTH_MW["Auth Middleware\n(provider-specific)"]
+        end
+
+        subgraph CoreServices["Core Backend Services"]
+            CATALOG_BE["Catalog Backend\n(entity processing,\nstitching, relations)"]
+            SCAFFOLD_BE["Scaffolder Backend\n(template execution,\naction runners)"]
+            TECHDOCS_BE["TechDocs Backend\n(MkDocs generator,\nS3/GCS publisher)"]
+            SEARCH_BE["Search Backend\n(index, collator,\nquery engine)"]
+            PERMISSION_BE["Permission Backend\n(policy evaluation)"]
+        end
+
+        subgraph PluginBackends["Plugin Backends"]
+            ARGOCD_BE["Argo CD Backend Plugin"]
+            COST_BE["Cost Insights Plugin"]
+            GITHUB_BE["GitHub Actions Plugin"]
+            CUSTOM_BE["Custom Internal\nPlugins"]
+        end
+
+        subgraph Integration["External Integrations"]
+            GITHUB_INT["GitHub / GitLab API"]
+            K8S_INT["Kubernetes API\n(multi-cluster)"]
+            CLOUD_INT["Cloud Provider APIs"]
+            PAGERDUTY_INT["PagerDuty API"]
+        end
+    end
+
+    subgraph DataLayer["Data Layer"]
+        DB["PostgreSQL\n(catalog entities,\nscaffolder tasks)"]
+        CACHE["Cache\n(in-memory / Redis)"]
+        STORAGE["Object Storage\n(TechDocs: S3 / GCS)"]
+        SEARCH_IDX["Search Index\n(Lunr / Elasticsearch)"]
+    end
+
+    subgraph EntitySources["Entity Discovery Sources"]
+        YAML_FILES["catalog-info.yaml files\n(Git-hosted)"]
+        GITHUB_DISC["GitHub org\nauto-discovery"]
+        MANUAL["Manually registered\nlocations"]
+    end
+
+    UI --> ROUTER
+    PLUGIN_UI --> ROUTER
+    AUTH_MW --> ROUTER
+    ROUTER --> CATALOG_BE
+    ROUTER --> SCAFFOLD_BE
+    ROUTER --> TECHDOCS_BE
+    ROUTER --> SEARCH_BE
+    ROUTER --> PERMISSION_BE
+    ROUTER --> ARGOCD_BE
+    ROUTER --> COST_BE
+
+    CATALOG_BE --> DB
+    CATALOG_BE --> CACHE
+    SCAFFOLD_BE --> DB
+    TECHDOCS_BE --> STORAGE
+    SEARCH_BE --> SEARCH_IDX
+
+    CATALOG_BE --> GITHUB_INT
+    CATALOG_BE --> K8S_INT
+    ARGOCD_BE --> K8S_INT
+    COST_BE --> CLOUD_INT
+    SCAFFOLD_BE --> GITHUB_INT
+
+    YAML_FILES --> CATALOG_BE
+    GITHUB_DISC --> CATALOG_BE
+    MANUAL --> CATALOG_BE
+
+    style BackstageCore fill:#2C3E50,color:#fff
+    style CoreServices fill:#2980B9,color:#fff
+    style PluginBackends fill:#8E44AD,color:#fff
+    style DataLayer fill:#27AE60,color:#fff
+    style EntitySources fill:#E67E22,color:#fff

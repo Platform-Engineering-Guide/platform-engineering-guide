@@ -1,0 +1,49 @@
+sequenceDiagram
+    participant LLM as LLM (Claude / GPT-4o)
+    participant HOST as Host Application<br/>(agent runtime)
+    participant CLIENT as MCP Client<br/>(protocol layer)
+    participant SERVER as MCP Server<br/>(platform tool)
+    participant BACKEND as Platform Backend<br/>(K8s API / Grafana / etc.)
+
+    Note over LLM,BACKEND: Phase 1 — Initialisation (once per session)
+
+    HOST->>CLIENT: Start MCP client
+    CLIENT->>SERVER: initialize request<br/>{protocolVersion, capabilities}
+    SERVER-->>CLIENT: initialize response<br/>{serverInfo, capabilities}
+    CLIENT->>SERVER: notifications/initialized
+    CLIENT->>SERVER: tools/list request
+    SERVER-->>CLIENT: tools/list response<br/>[{name, description, inputSchema}...]
+    CLIENT-->>HOST: Available tools registered
+    HOST-->>LLM: Tools injected into system prompt<br/>as structured tool definitions
+
+    Note over LLM,BACKEND: Phase 2 — Tool Invocation (per agent action)
+
+    LLM->>HOST: Tool call decision<br/>{tool: "get_pod_status",<br/>arguments: {namespace: "payments",<br/>pod: "payments-api-xyz"}}
+    HOST->>CLIENT: Forward tool call
+    CLIENT->>SERVER: tools/call request<br/>{name: "get_pod_status",<br/>arguments: {...}}
+    SERVER->>BACKEND: kubectl get pod payments-api-xyz<br/>-n payments -o json
+    BACKEND-->>SERVER: Pod JSON response
+    SERVER->>SERVER: Apply RBAC check<br/>(is this tool allowed for this agent?)
+    SERVER->>SERVER: Write to audit log<br/>(tool, args, caller, timestamp)
+    SERVER-->>CLIENT: tools/call response<br/>{content: [{type: "text",<br/>text: "Pod status: Running\nRestarts: 0\nAge: 2d"}]}
+    CLIENT-->>HOST: Tool result
+    HOST-->>LLM: Tool result in context
+
+    Note over LLM,BACKEND: Phase 3 — Write Operation (approval-gated)
+
+    LLM->>HOST: Tool call decision<br/>{tool: "scale_deployment",<br/>arguments: {name: "payments-api",<br/>namespace: "payments", replicas: 5}}
+    HOST->>CLIENT: Forward tool call
+    CLIENT->>SERVER: tools/call request<br/>{name: "scale_deployment", ...}
+    SERVER->>SERVER: Classify as WRITE operation
+    SERVER->>SERVER: Check approval policy —<br/>write ops require human approval
+
+    SERVER-->>CLIENT: tools/call response<br/>{content: [{type: "text",<br/>text: "PENDING APPROVAL: Scale request\nqueued as approval-XXXX.\nApprove at: https://approvals.internal/approval-XXXX"}]}
+    CLIENT-->>HOST: Approval pending
+    HOST-->>LLM: Inform user approval required
+
+    Note over SERVER,BACKEND: Human approves via Slack / UI
+
+    SERVER->>BACKEND: kubectl scale deployment payments-api<br/>--replicas=5 -n payments
+    BACKEND-->>SERVER: Scaled successfully
+    SERVER->>SERVER: Write completion to audit log
+    SERVER-->>HOST: Async completion notification

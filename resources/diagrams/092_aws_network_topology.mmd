@@ -1,0 +1,77 @@
+flowchart TD
+    subgraph Internet["Internet"]
+        USERS["Users / API clients"]
+        THIRD_PARTY["Third-party services\n(payment gateways, etc.)"]
+    end
+
+    subgraph AWS_REGION["AWS Region (eu-west-1)"]
+        subgraph VPC["VPC: 10.0.0.0/16"]
+
+            subgraph PUBLIC_AZ_A["Public Subnet AZ-a: 10.0.0.0/19"]
+                ALB_A["Application Load Balancer\n(ingress-nginx target group)"]
+                NAT_A["NAT Gateway AZ-a\n(outbound internet for private)"]
+            end
+
+            subgraph PUBLIC_AZ_B["Public Subnet AZ-b: 10.0.32.0/19"]
+                ALB_B["ALB (multi-AZ)"]
+                NAT_B["NAT Gateway AZ-b"]
+            end
+
+            subgraph PUBLIC_AZ_C["Public Subnet AZ-c: 10.0.64.0/19"]
+                ALB_C["ALB (multi-AZ)"]
+                NAT_C["NAT Gateway AZ-c"]
+            end
+
+            subgraph PRIVATE_AZ_A["Private Subnet AZ-a: 10.0.96.0/19"]
+                NODE_A["EKS Worker Nodes\n(Karpenter managed)\nPods: VPC CNI\n(prefix delegation)"]
+            end
+
+            subgraph PRIVATE_AZ_B["Private Subnet AZ-b: 10.0.128.0/19"]
+                NODE_B["EKS Worker Nodes"]
+            end
+
+            subgraph PRIVATE_AZ_C["Private Subnet AZ-c: 10.0.160.0/19"]
+                NODE_C["EKS Worker Nodes"]
+            end
+
+            subgraph INTRA_SUBNETS["Intra Subnets (no internet): 10.0.200.0/24–202"]
+                EKS_CP["EKS Control Plane\nENIs (managed by AWS)\nNo direct internet access"]
+            end
+
+            subgraph DATA_LAYER["Data Layer (Private)"]
+                RDS["RDS Aurora PostgreSQL\n(Multi-AZ)\nSubnet group: private"]
+                ELASTICACHE["ElastiCache Redis\n(Multi-AZ)\nSubnet group: private"]
+            end
+        end
+
+        subgraph AWS_SERVICES["AWS Services (via VPC Endpoints)"]
+            ECR_EP["ECR VPC Endpoint\n(no NAT for image pulls)"]
+            S3_EP["S3 VPC Endpoint\n(Loki/Mimir object storage)"]
+            SM_EP["Secrets Manager VPC Endpoint\n(ESO secret reads)"]
+            STS_EP["STS VPC Endpoint\n(IRSA token exchange)"]
+        end
+    end
+
+    USERS -->|"HTTPS 443"| ALB_A
+    USERS -->|"HTTPS 443"| ALB_B
+    ALB_A -->|"HTTP 8080\nto ingress-nginx pods"| NODE_A
+    ALB_B --> NODE_B
+    NODE_A -->|"outbound via NAT"| NAT_A
+    NAT_A --> THIRD_PARTY
+    NODE_A --> ECR_EP
+    NODE_A --> S3_EP
+    NODE_A --> SM_EP
+    NODE_A --> STS_EP
+    NODE_A --> RDS
+    NODE_A --> ELASTICACHE
+    EKS_CP -.->|"API server ENIs\nin intra subnets"| NODE_A
+
+    style VPC fill:#f8f9fa,color:#000
+    style PRIVATE_AZ_A fill:#D6EAF8,color:#000
+    style PRIVATE_AZ_B fill:#D6EAF8,color:#000
+    style PRIVATE_AZ_C fill:#D6EAF8,color:#000
+    style PUBLIC_AZ_A fill:#D5F5E3,color:#000
+    style PUBLIC_AZ_B fill:#D5F5E3,color:#000
+    style PUBLIC_AZ_C fill:#D5F5E3,color:#000
+    style INTRA_SUBNETS fill:#FADBD8,color:#000
+    style AWS_SERVICES fill:#FFF3CD,color:#000
